@@ -11,5 +11,5 @@
 #BSUB -o /scratch1/fs1/d.goldfarb/backpack/logs/fragpipe.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/fragpipe.%J.err.txt
 
-pwd
-./fragpipe --help
+
+/fragpipe_bin/fragPipe-22.0/fragpipe/bin/fragpipe --help
