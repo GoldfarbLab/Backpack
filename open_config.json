@@ -30,7 +30,7 @@
         "fasta": "/storage1/fs1/d.goldfarb/Active/Backpack/fasta/human-2024-06-04.fas"
     },
     "precursor_tol": {
-        "da": [500,100]
+        "da": [-500,100]
     },
     "fragment_tol": {
         "ppm": [-10, 10]
