@@ -11,5 +11,5 @@
 #BSUB -o /scratch1/fs1/d.goldfarb/backpack/logs/raw_convert.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/raw_convert.%J.err.txt
 
-ls /app
+ls /
 mono ThermoRawFileParser.exe
