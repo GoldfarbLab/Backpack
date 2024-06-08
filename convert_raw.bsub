@@ -1,7 +1,7 @@
 #!/bin/bash
 #BSUB -g /d.goldfarb/compute
 #BSUB -G compute-d.goldfarb
-#BSUB -a 'docker(quay.io/biocontainers/thermorawfileparser:latest)'
+#BSUB -a 'docker(quay.io/biocontainers/thermorawfileparser:1.4.4--ha8f3691_0)'
 #BSUB -J raw_convert
 #BSUB -q general
 #BSUB -R 'rusage[mem=8GB] span[hosts=1]'
