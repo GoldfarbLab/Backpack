@@ -11,4 +11,4 @@
 #BSUB -o /scratch1/fs1/d.goldfarb/backpack/logs/sage.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/sage.%J.err.txt
 
-/app/sage/ --help
+/app/sage --help
