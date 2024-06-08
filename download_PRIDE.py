@@ -1,6 +1,7 @@
 #!/usr/bin/env/python
 import sys
 import os
+import argparse
 import re as re
 from ftplib import FTP
 from datetime import datetime
@@ -8,8 +9,22 @@ from datetime import datetime
 #local_path = "/Users/denisgoldfarb/Downloads/Altimeter/data/ProteomeTools/Part2/"
 #PXD = "/pride/data/archive/2019/05/PXD010595/"
 
-local_path = sys.argv[1]
-PXD = sys.argv[2]
+parser = argparse.ArgumentParser(
+                    prog='PRIDE Downloader',
+                    description='Downloads PRIDE raw files for a specific project')
+parser.add_argument("local_path")
+parser.add_argument("PXD")
+parser.add_argument("-e", "--exclude")
+parser.add_argument("-i", "--include")
+args = parser.parse_args()
+
+local_path = args.local_path
+PXD = "/pride/data/archive/" + args.PXD
+exclusion_pattern = args.exclude
+inclusion_pattern = args.include
+
+print(local_path, PXD, exclusion_pattern, inclusion_pattern)
+sys.exit()
 
 if not os.path.exists(local_path):
     os.makedirs(local_path)
