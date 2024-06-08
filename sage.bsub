@@ -4,10 +4,10 @@
 #BSUB -a 'docker(ghcr.io/lazear/sage:latest)'
 #BSUB -J sage
 #BSUB -q general
-#BSUB -R 'rusage[mem=64GB] span[hosts=1]'
+#BSUB -R 'rusage[mem=96GB] span[hosts=1]'
 #BSUB -n 2
 #BSUB -W 300
-#BSUB -M 64GB
+#BSUB -M 96GB
 #BSUB -o /scratch1/fs1/d.goldfarb/backpack/logs/sage.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/sage.%J.err.txt
 
