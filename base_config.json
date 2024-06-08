@@ -6,7 +6,7 @@
             "min_len": 5,
             "max_len": 60,
             "cleave_at": "KR",
-            "semi_enzymatic": true
+            "semi_enzymatic": false
         },
         "fragment_min_mz": 150.0,
         "fragment_max_mz": 1500.0,
@@ -17,7 +17,7 @@
             "y"
         ],
         "min_ion_index": 2,
-        "max_variable_mods": 2,
+        "max_variable_mods": 3,
         "static_mods": {
             "C": 57.021464
         },
