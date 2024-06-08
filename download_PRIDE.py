@@ -5,6 +5,7 @@ import argparse
 import re as re
 from ftplib import FTP
 from datetime import datetime
+from joblib import Parallel
 
 #local_path = "/Users/denisgoldfarb/Downloads/Altimeter/data/ProteomeTools/Part2/"
 #PXD = "/pride/data/archive/2019/05/PXD010595/"
@@ -16,12 +17,14 @@ parser.add_argument("local_path")
 parser.add_argument("PXD")
 parser.add_argument("-e", "--exclude")
 parser.add_argument("-i", "--include")
+parser.add_argument("-j", "--jobs")
 args = parser.parse_args()
 
 local_path = args.local_path
 PXD = "/pride/data/archive/" + args.PXD
 exclusion_pattern = args.exclude
 inclusion_pattern = args.include
+num_jobs = 1 if args.jobs is None else args.jobs
 
 
 if not os.path.exists(local_path):
@@ -45,12 +48,17 @@ def filterRawFiles(raw_files):
     return raw_files
         
 # connect, navigate to folder, and download a specific file
-def downloadRawFile(local_path, PXD, rawfile):
+def downloadRawFile(local_path, PXD, rawfile, i):
+    start=datetime.now()
+    print("Downloading:", rawfile, i)
+    
     ftp = connectToPride(PXD)
     local_filename = os.path.join(local_path, rawfile)
     with open(local_filename, 'wb') as fp:
         ftp.retrbinary("RETR " + rawfile, fp.write)
     ftp.quit()
+    
+    print("Finished", datetime.now()-start)
 
 def connectToPride(PXD):
     ftp = FTP('ftp.pride.ebi.ac.uk')
@@ -62,8 +70,5 @@ def connectToPride(PXD):
 
 raw_files = getProjectRawFiles(PXD)
 print("Raw files found:", len(raw_files))
-for i, f in enumerate(raw_files):
-    start=datetime.now()
-    print("Downloading:", f, i)
-    downloadRawFile(local_path, PXD, f)
-    print("Finished", datetime.now()-start)
+Parallel(n_jobs=num_jobs)(downloadRawFile(local_path, PXD, f, i) for i, f in enumerate(raw_files))
+
