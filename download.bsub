@@ -5,11 +5,10 @@
 #BSUB -J backpack_download
 #BSUB -q general
 #BSUB -R 'rusage[mem=1GB] span[hosts=1]'
-#BSUB -n 8
+#BSUB -n 1
 #BSUB -W 6000
 #BSUB -M 1GB
 #BSUB -o /scratch1/fs1/d.goldfarb/backpack/logs/download.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/download.%J.err.txt
 
-pip install joblib
-python ./download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/ /2021/04/PXD021013/ --exclude=ETD -j 8
+python ./download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/ /2021/04/PXD021013/ --exclude=ETD
