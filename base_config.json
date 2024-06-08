@@ -17,7 +17,7 @@
             "y"
         ],
         "min_ion_index": 2,
-        "max_variable_mods": 3,
+        "max_variable_mods": 2,
         "static_mods": {
             "C": 57.021464
         },
