@@ -11,4 +11,4 @@
 #BSUB -o /scratch1/fs1/d.goldfarb/backpack/logs/raw_convert.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/raw_convert.%J.err.txt
 
-ThermoRawFileParser.sh -i /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/01625b_GA1-TUM_first_pool_1_01_01-2xIT_2xHCD-1h-R1.raw
+ThermoRawFileParser.sh -i /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/01640a_BA5-Thermo_SRM_Pool_33_01_01-DDA-1h-R4.raw
