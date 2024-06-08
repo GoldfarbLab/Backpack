@@ -6,7 +6,6 @@
             "min_len": 5,
             "max_len": 60,
             "cleave_at": "KR",
-            "restrict": "",
             "semi_enzymatic": true
         },
         "fragment_min_mz": 150.0,
