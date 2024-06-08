@@ -4,12 +4,12 @@
 #BSUB -a 'docker(ghcr.io/lazear/sage:latest)'
 #BSUB -J sage
 #BSUB -q general
-#BSUB -R 'rusage[mem=16GB] span[hosts=1]'
+#BSUB -R 'rusage[mem=128GB] span[hosts=1]'
 #BSUB -n 2
 #BSUB -W 300
-#BSUB -M 16GB
+#BSUB -M 128GB
 #BSUB -o /scratch1/fs1/d.goldfarb/backpack/logs/sage.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/sage.%J.err.txt
 
-export SAGE_LOG=trace
-/app/sage base_config.json
+#export SAGE_LOG=trace
+/app/sage --disable-telemetry-i-dont-want-to-improve-sage semi_config.json 
