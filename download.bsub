@@ -11,4 +11,4 @@
 #BSUB -o /scratch1/fs1/d.goldfarb/backpack/logs/download.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/download.%J.err.txt
 
-python ./download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/ /2021/04/PXD021013/ --exclude=ETD
+python ./download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/ /2017/02/PXD004732 --exclude=ETD
