@@ -23,12 +23,9 @@ PXD = "/pride/data/archive/" + args.PXD
 exclusion_pattern = args.exclude
 inclusion_pattern = args.include
 
-print(local_path, PXD, exclusion_pattern, inclusion_pattern)
-sys.exit()
 
 if not os.path.exists(local_path):
     os.makedirs(local_path)
-
 
 def getProjectRawFiles(PXD):
     ftp = connectToPride(PXD)
@@ -37,6 +34,14 @@ def getProjectRawFiles(PXD):
     ftp.retrlines('NLST', callback=files.append)
     ftp.quit()
     raw_files = [f for f in files if ".raw" in f]
+    raw_files = filterRawFiles(raw_files)
+    return raw_files
+
+def filterRawFiles(raw_files):
+    if exclusion_pattern is not None:
+        raw_files = [f for f in raw_files if re.search(exclusion_pattern, f) is None]
+    if inclusion_pattern is not None:
+        raw_files = [f for f in raw_files if re.search(inclusion_pattern, f) is not None]
     return raw_files
         
 # connect, navigate to folder, and download a specific file
