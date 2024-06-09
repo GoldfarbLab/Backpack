@@ -1,0 +1,16 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(python:slim)'
+#BSUB -J filter
+#BSUB -q general
+#BSUB -R 'rusage[mem=1GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 300
+#BSUB -M 1GB
+#BSUB -o /scratch1/fs1/d.goldfarb/backpack/logs/filter.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/filter.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+
+python ${SRC_PATH}/RIS/ProteomeTools/filter_sage_quality.py ${RESULTS_PATH}/sage/results.sage.tsv ${RESULTS_PATH}/sage/pool.fasta

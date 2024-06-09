@@ -31,8 +31,12 @@ POOL_NAME=$(get_pool ${DATA_NAME})
 source ${SCRATCH_PATH}/ProteomeTools/${DATA_SET}/${DATA_NAME}/scripts/config.sh
 
 # Submit LSF jobs
-jid1=$(get_jobid bsub < $SCRIPT_PATH/convert_raw.bsub)
-echo Submitted convert job for $DATA_NAME with ID: $jid1
+#jid1=$(get_jobid bsub < $SCRIPT_PATH/convert_raw.bsub)
+#echo Submitted convert job for $DATA_NAME with ID: $jid1
 
-jid2=$(get_jobid bsub -w "ended($jid1)" < $SCRIPT_PATH/sage.bsub)
-echo Submitted sage job for $DATA_NAME with ID: $jid2
+#jid2=$(get_jobid bsub -w "ended($jid1)" < $SCRIPT_PATH/sage.bsub)
+#echo Submitted sage job for $DATA_NAME with ID: $jid2
+
+#jid3=$(get_jobid bsub -w "ended($jid2)" < $SCRIPT_PATH/filter.bsub)
+jid3=$(get_jobid bsub < $SCRIPT_PATH/filter.bsub)
+echo Submitted filter job for $DATA_NAME with ID: $jid3
