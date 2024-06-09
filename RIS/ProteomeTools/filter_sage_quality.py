@@ -5,8 +5,8 @@ import argparse
 import csv
 import clr
 
-clr.AddReference('ThermoFisher.CommonCore.Data')
-clr.AddReference('ThermoFisher.CommonCore.RawFileReader')
+clr.AddReference('/RawFileReader/Libs/ThermoFisher.CommonCore.Data')
+clr.AddReference('/RawFileReader/Libs/ThermoFisher.CommonCore.RawFileReader')
 
 from System import *
 from System.Collections.Generic import *
