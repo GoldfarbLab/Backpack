@@ -8,6 +8,7 @@ parser = argparse.ArgumentParser(
                     prog='Sage filter',
                     description='Filter Sage results by ID quality metrics')
 parser.add_argument("sage_results")
+parser.add_argument("fasta")
 parser.add_argument("-m", "--psm_q", default=0.01, type=float)
 parser.add_argument("-p", "--pep_q", default=0.01, type=float)
 parser.add_argument("-e", "--post_error", default=-1, type=float)
