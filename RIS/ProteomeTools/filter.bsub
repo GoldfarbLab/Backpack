@@ -13,4 +13,4 @@
 
 source LSF_SCRIPT_PATH/config.sh
 
-python ${SRC_PATH}/RIS/ProteomeTools/filter_sage_quality.py ${RESULTS_PATH}/sage/results.sage.tsv ${RESULTS_PATH}/sage/pool.fasta
+python ${SRC_PATH}/RIS/ProteomeTools/filter_sage_quality.py ${RESULTS_PATH}/sage/results.sage.tsv
