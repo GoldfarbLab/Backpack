@@ -1,7 +1,7 @@
 #!/bin/bash
 #BSUB -g /d.goldfarb/compute
 #BSUB -G compute-d.goldfarb
-#BSUB -a 'docker(dennisgoldfarb/novnc_mono:ubuntu20.04)'
+#BSUB -a 'docker(dennisgoldfarb/raw:latest)'
 #BSUB -J filter
 #BSUB -q general
 #BSUB -R 'rusage[mem=1GB] span[hosts=1]'
@@ -13,4 +13,4 @@
 
 source LSF_SCRIPT_PATH/config.sh
 
-python ${SRC_PATH}/RIS/ProteomeTools/filter_sage_quality.py ${RESULTS_PATH}/sage/results.sage.tsv
+python3 ${SRC_PATH}/RIS/ProteomeTools/filter_sage_quality.py ${RESULTS_PATH}/sage/results.sage.tsv
