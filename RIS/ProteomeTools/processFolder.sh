@@ -11,6 +11,6 @@ do
         base_name=$(basename "${f}")
         echo "Executing pipeline on $base_name"
 
-        #./prepare.sh $DATA_FOLDER $CONFIG_PATH
+        ./prepare.sh $DATA_FOLDER $CONFIG_PATH
     fi
 done
