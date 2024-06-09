@@ -28,7 +28,7 @@ POOL_NAME=$(get_pool ${DATA_NAME})
 ./prepare.sh $DATA_SET $SAGE_CONFIG_PATH $DATA_PATH $DATA_NAME $POOL_NAME
 
 # Read final config
-source ${SCRATCH_PATH}/ProteomeTools/${DATA_SET_NAME}/${DATA_NAME}/scripts/config.sh
+source ${SCRATCH_PATH}/ProteomeTools/${DATA_SET}/${DATA_NAME}/scripts/config.sh
 
 # Submit LSF jobs
 #jid1=$(get_jobid bsub < $SCRIPT_PATH/align.bsub)
