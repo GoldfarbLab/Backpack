@@ -27,5 +27,12 @@ mkdir -p $SCRIPT_PATH
 # Move config to output scripts folder
 mv ./$CONFIG_FILE $SCRIPT_PATH/config.sh
 
+# Update scripts with dataset specific parameters
+declare -a scripts=("convert_raw.bsub")
+
+for val in ${scripts[@]}; do
+    sed "s+LSF_SCRIPT_PATH+$SCRIPT_PATH/+g" < $val > $SCRIPT_PATH/$val
+done
+
 # Copy python scripts
 #cp *.py $SCRIPT_PATH/
