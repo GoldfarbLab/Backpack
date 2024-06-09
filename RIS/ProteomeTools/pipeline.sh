@@ -7,7 +7,7 @@ function get_jobid {
 }
 
 function get_pool {
-    POOL_FULL=awk 'NR==2 {split($1, arr, "-"); print arr[2]}'
+    POOL_FULL=$(awk 'NR==2 {split($1, arr, "-"); print arr[2]}')
     POOL=${POOL_FULL::-6}
     echo $POOL
 }
