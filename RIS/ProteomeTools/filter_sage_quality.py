@@ -1,12 +1,13 @@
 #!/usr/bin/env/python
 import sys
+import os
 import pandas as pd
 import argparse
 import csv
 import clr
 
-clr.AddReference('/RawFileReader/Libs/ThermoFisher.CommonCore.Data')
-clr.AddReference('/RawFileReader/Libs/ThermoFisher.CommonCore.RawFileReader')
+clr.AddReference(os.path.normpath("/RawFileReader/Libs/NetCore/ThermoFisher.CommonCore,Data.dll"))
+clr.AddReference(os.path.normpath("/RawFileReader/Libs/NetCore/ThermoFisher.CommonCore.RawFileReader.dll"))
 
 from System import *
 from System.Collections.Generic import *
