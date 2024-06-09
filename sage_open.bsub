@@ -12,4 +12,8 @@
 #BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/sage_open.%J.err.txt
 
 #export SAGE_LOG=trace
-/app/sage --disable-telemetry-i-dont-want-to-improve-sage open_config.json 
+
+# Create pool specific FASTA
+cat /storage1/fs1/d.goldfarb/Active/Backpack/fasta/human-2024-06-04.fas /storage1/fs1/d.goldfarb/Active/Backpack/fasta/ProteomeTools/ProteomeTools_QC.fasta /storage1/fs1/d.goldfarb/Active/Backpack/fasta/ProteomeTools/Thermo_SRM_Pool_33.fasta > /scratch1/fs1/d.goldfarb/backpack/fasta/Thermo_SRM_Pool_33.fasta
+
+/app/sage open_config.json --disable-telemetry-i-dont-want-to-improve-sage -f /scratch1/fs1/d.goldfarb/backpack/fasta/Thermo_SRM_Pool_33.fasta
