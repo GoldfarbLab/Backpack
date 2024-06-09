@@ -3,6 +3,13 @@ import sys
 import pandas as pd
 import argparse
 import csv
+import clr
+
+clr.AddReference('ThermoFisher.CommonCore.Data')
+clr.AddReference('ThermoFisher.CommonCore.RawFileReader')
+
+from System import *
+from System.Collections.Generic import *
 
 parser = argparse.ArgumentParser(
                     prog='Sage filter',
@@ -13,7 +20,8 @@ parser.add_argument("-p", "--pep_q", default=0.01, type=float)
 parser.add_argument("-e", "--post_error", default=-1, type=float)
 args = parser.parse_args()
 
-print(args.psm_q, args.pep_q, args.post_error)
+
+#################################################################################
 
 data = pd.read_csv(args.sage_results, sep="\t")
 data = data[data["spectrum_q"] <= args.psm_q]
