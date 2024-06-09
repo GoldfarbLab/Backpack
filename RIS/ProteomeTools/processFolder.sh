@@ -13,6 +13,6 @@ do
         base_name=$(basename "${f}")
         echo "Executing pipeline on $base_name"
 
-        ./pipeline.sh $DATA_SET $CONFIG_PATH $DATA_FOLDER 
+        ./pipeline.sh $DATA_SET $CONFIG_PATH $base_name 
     fi
 done
