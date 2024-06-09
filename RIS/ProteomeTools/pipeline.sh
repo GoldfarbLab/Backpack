@@ -20,7 +20,8 @@ source config_template.sh
 DATA_SET=$1
 CONFIG_PATH=$2
 DATA_PATH=$3
-DATA_NAME="${DATA_PATH##*/}"
+DATA_NAME=$(basename -- "$DATA_PATH")
+DATA_NAME="${filename%.*}"
 POOL_NAME=$(get_pool ${DATA_NAME})
 
 echo $DATA_SET $DATA_PATH $DATA_NAME $POOL_NAME
