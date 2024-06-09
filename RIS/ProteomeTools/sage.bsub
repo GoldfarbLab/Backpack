@@ -18,4 +18,5 @@ mkdir -p ${RESULTS_PATH}/sage/
 # Create pool specific FASTA
 cat $HUMAN_FASTA $QC_FASTA $POOL_FASTA_PATH > ${RESULTS_PATH}/sage/pool.fasta
 
-/app/sage $SAGE_CONFIG_PATH --disable-telemetry-i-dont-want-to-improve-sage -f ${RESULTS_PATH}/sage/pool.fasta -o ${RESULTS_PATH}/sage/
+/app/sage $SAGE_CONFIG_PATH --disable-telemetry-i-dont-want-to-improve-sage -f ${RESULTS_PATH}/sage/pool.fasta -o ${RESULTS_PATH}/sage/ ${RESULTS_PATH}/mzML/*.mzML
+rm -r ${RESULTS_PATH}/mzML/
