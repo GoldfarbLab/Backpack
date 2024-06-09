@@ -1,0 +1,21 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(ghcr.io/lazear/sage:latest)'
+#BSUB -J sage_pt
+#BSUB -q general
+#BSUB -R 'rusage[mem=16GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 300
+#BSUB -M 16GB
+#BSUB -o /scratch1/fs1/d.goldfarb/backpack/logs/sage_pt.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/sage_pt.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+# Make output directory
+mkdir -p ${RESULTS_PATH}/sage/
+
+# Create pool specific FASTA
+cat $HUMAN_FASTA $QC_FASTA $POOL_FASTA_PATH > ${RESULTS_PATH}/sage/pool.fasta
+
+/app/sage $SAGE_CONFIG_PATH --disable-telemetry-i-dont-want-to-improve-sage -f ${RESULTS_PATH}/sage/pool.fasta -o ${RESULTS_PATH}/sage/
