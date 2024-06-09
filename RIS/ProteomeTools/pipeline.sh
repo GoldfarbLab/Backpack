@@ -17,16 +17,15 @@ source config_template.sh
 
 # Read command line arguments
 DATA_SET=$1
-CONFIG_PATH=$2
+SAGE_CONFIG_PATH=$2
 DATA_PATH=$3
 DATA_NAME=$(basename -- "$DATA_PATH")
 DATA_NAME="${DATA_NAME%.*}"
 POOL_NAME=$(get_pool ${DATA_NAME})
 
-echo $DATA_SET $DATA_PATH $DATA_NAME $POOL_NAME
 
 # Execute scripts with command line arguments
-#./prepare.sh $DATA_SET_NAME $DATA_PATH
+./prepare.sh $DATA_SET $SAGE_CONFIG_PATH $DATA_PATH $DATA_NAME $POOL_NAME
 
 # Read final config
 #source ${SCRATCH_PATH}/${DATA_SET_NAME}/total_RNA/scripts/config.sh
