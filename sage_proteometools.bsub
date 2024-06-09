@@ -1,0 +1,19 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(ghcr.io/lazear/sage:latest)'
+#BSUB -J sage_pt
+#BSUB -q general
+#BSUB -R 'rusage[mem=16GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 300
+#BSUB -M 16GB
+#BSUB -o /scratch1/fs1/d.goldfarb/backpack/logs/sage_pt.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/sage_pt.%J.err.txt
+
+#export SAGE_LOG=trace
+
+# Create pool specific FASTA
+cat /storage1/fs1/d.goldfarb/Active/Backpack/fasta/human-2024-06-04.fas /storage1/fs1/d.goldfarb/Active/Backpack/fasta/ProteomeTools/ProteomeTools_QC.fasta /storage1/fs1/d.goldfarb/Active/Backpack/fasta/ProteomeTools/Thermo_SRM_Pool_33.fasta > /scratch1/fs1/d.goldfarb/backpack/fasta/Thermo_SRM_Pool_33.fasta
+
+/app/sage closed_config.json --disable-telemetry-i-dont-want-to-improve-sage -f /scratch1/fs1/d.goldfarb/backpack/fasta/Thermo_SRM_Pool_33.fasta
