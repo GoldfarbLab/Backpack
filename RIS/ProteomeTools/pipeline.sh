@@ -7,10 +7,9 @@ function get_jobid {
 }
 
 function get_pool {
-    POOL_FULL=`grep -o -P '\-.*?\-' <<< $1 | head -1`å
-    echo $POOL_FULL
-    #POOL=${POOL_FULL::-6}
-    #echo $POOL
+    POOL_FULL=`grep -o -P '\-.*?\-' <<< $1 | head -1`
+    POOL=${POOL_FULL:1:-7}
+    echo $POOL
 }
 
 # Read config template to get initial paths
