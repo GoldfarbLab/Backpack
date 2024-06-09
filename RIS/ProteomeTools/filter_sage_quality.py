@@ -6,11 +6,13 @@ import argparse
 import csv
 import clr
 
-clr.AddReference(os.path.normpath("/RawFileReader/Libs/NetCore/ThermoFisher.CommonCore.Data.dll"))
-clr.AddReference(os.path.normpath("/RawFileReader/Libs/NetCore/ThermoFisher.CommonCore.RawFileReader.dll"))
-
 from System import *
 from System.Collections.Generic import *
+
+#clr.AddReference(os.path.normpath("/RawFileReader/Libs/NetCore/ThermoFisher.CommonCore.Data.dll"))
+#clr.AddReference(os.path.normpath("/RawFileReader/Libs/NetCore/ThermoFisher.CommonCore.RawFileReader.dll"))
+
+
 
 parser = argparse.ArgumentParser(
                     prog='Sage filter',
