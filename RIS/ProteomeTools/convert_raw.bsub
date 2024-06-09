@@ -15,4 +15,5 @@ source LSF_SCRIPT_PATH/config.sh
 # Make output directory
 mkdir -p ${RESULTS_PATH}/mzML/
 
-ThermoRawFileParser.sh -i ${DATA_PATH}
+echo ${DATA_PATH}
+ThermoRawFileParser.sh -i ${DATA_PATH} -o ${RESULTS_PATH}/mzML/
