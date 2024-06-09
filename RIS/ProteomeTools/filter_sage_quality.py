@@ -20,5 +20,6 @@ data = data[data["spectrum_q"] <= args.psm_q]
 data = data[data["peptide_q"] <= args.pep_q]
 data = data[data["posterior_error"] <= args.post_error]
 data = data[data["proteins"].str.contains("pt|")]
+data = data[data["label"] == 1]
 
 data.to_csv(args.sage_results + ".filtered", sep="\t", index=False, quoting=csv.QUOTE_NONE)
