@@ -6,14 +6,23 @@ function get_jobid {
     echo $output | tail -n 1 | cut -d'<' -f2 | cut -d'>' -f1
 }
 
+function get_pool {
+    POOL_FULL=awk 'NR==2 {split($1, arr, "-"); print arr[2]}'
+    POOL=${POOL_FULL::-6}
+    echo $POOL
+}
+
 # Read config template to get initial paths
-#source config_template.sh
+source config_template.sh
 
 # Read command line arguments
-DATA_PATH=$1
+DATA_SET=$1
 CONFIG_PATH=$2
+DATA_PATH=$3
+DATA_NAME="${DATA_PATH##*/}"
+POOL_NAME=get_pool "${DATA_NAME}"
 
-echo $DATA_PATH $CONFIG_PATH
+echo $DATA_SET $DATA_PATH $DATA_NAME $POOL_NAME
 
 # Execute scripts with command line arguments
 #./prepare.sh $DATA_SET_NAME $DATA_PATH
