@@ -71,8 +71,29 @@ for index, row in data.iterrows():
         # list
         trailerData = rawFile.GetTrailerExtraInformation(scan_id)
         
+        key2val = dict()
         for i in range(trailerData.Length):
-            print(trailerData.Labels[i])
-            
-        print(collisionEnergy, isolationWidth)
+            k = trailerData[i]
+            v = trailerData.Values[i]
+            if k == "Charge State:":
+                key2val["z"] = v
+            elif k == "Orbitrap Resolution:":
+                key2val["resolution"] = v
+            elif k == "HCD Energy:":
+                key2val["NCE"] = v
+            elif k == "RawOvFtT:":
+                key2val["RawOvFtT"] = v
+        
+        # Get the Trailer Extra data fields present in the RAW file
+        trailerFields = rawFile.GetTrailerExtraHeaderInformation()
+
+        # Display each value
+        i = 0
+        print('Trailer Extra Data Information:')
+
+        for field in trailerFields:
+            print('   Field {} = {} storing data of type {}'.format(
+                i, field.Label, Enum.GetName(GenericDataTypes, field.DataType)))
+            i += 1
+        
         sys.exit()
