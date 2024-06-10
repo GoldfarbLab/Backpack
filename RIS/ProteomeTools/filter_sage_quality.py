@@ -73,7 +73,7 @@ for index, row in data.iterrows():
         
         key2val = dict()
         for i in range(trailerData.Length):
-            k = trailerData[i]
+            k = trailerData.Labels[i]
             v = trailerData.Values[i]
             if k == "Charge State:":
                 key2val["z"] = v
