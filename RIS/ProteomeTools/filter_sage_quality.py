@@ -5,6 +5,7 @@ import pandas as pd
 import argparse
 import csv
 import clr
+import re as re
 
 from System import *
 from System.Collections.Generic import *
@@ -84,5 +85,19 @@ for index, row in data.iterrows():
             elif k == "RawOvFtT:":
                 key2val["RawOvFtT"] = v
         
-        print(scanFilter.ToString())
+        filterString = scanFilter.ToString()
+        
+        # Don't include multiple reactions
+        if len(filterString.split()[-2].split("@")) > 2: continue
+        key2val["Reaction Type"] = re.split("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0]
+        if key2val["Reaction Type"] != "hcd": continue
+        
+        key2val["Analyzer"] = filterString.split()[0]
+        key2val["Isolation Center"] = filterString.split()[-2].split("@")[0]
+        key2val["NCE"] = re.split("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[1]
+        key2val["LowMz"] = filterString.split()[-1].split("-")[0][1:]
+        key2val["HighMz"] = filterString.split()[-1].split("-")[1][1:]
+        key2val["Scan Filter"] = filterString
+        
+        print(key2val)
         sys.exit()
