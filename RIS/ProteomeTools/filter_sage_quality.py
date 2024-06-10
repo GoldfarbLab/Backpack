@@ -29,6 +29,16 @@ parser.add_argument("-e", "--post_error", default=-1, type=float)
 args = parser.parse_args()
 
 
+def NCE2eV(nce, mz, charge):
+    cf = 1.0
+    if charge==2: cf=0.9
+    elif charge==3: cf=0.85
+    elif charge==4: cf=0.8
+    elif charge>=5: cf=0.75
+    ev = nce*mz*500*cf
+    return ev
+
+
 #################################################################################
 
 data = pd.read_csv(args.sage_results, sep="\t")
@@ -78,6 +88,7 @@ for index, row in data.iterrows():
             v = trailerData.Values[i]
             if k == "Charge State:":
                 key2val["z"] = v
+                if int(v) < 1 or int(v) > 8: continue
             elif k == "Orbitrap Resolution:":
                 key2val["resolution"] = v
             elif k == "HCD Energy:":
@@ -88,14 +99,9 @@ for index, row in data.iterrows():
         filterString = scanFilter.ToString()
         
         # Don't include multiple reactions
-        if len(filterString.split()[-2].split("@")) > 2: 
-            print(filterString.split()[-2].split("@"))
-            #continue
-        print(re.findall("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0])
+        if len(filterString.split()[-2].split("@")) > 2: continue
         key2val["Reaction Type"] = re.findall("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0]
-        if key2val["Reaction Type"] != "hcd": 
-            print(key2val["Reaction Type"])
-            #continue
+        if key2val["Reaction Type"] != "hcd": continue
         
         key2val["Analyzer"] = filterString.split()[0]
         key2val["Isolation Center"] = filterString.split()[-2].split("@")[0]
@@ -103,6 +109,7 @@ for index, row in data.iterrows():
         key2val["LowMz"] = filterString.split()[-1].split("-")[0][1:]
         key2val["HighMz"] = filterString.split()[-1].split("-")[1][0:-1]
         key2val["Scan Filter"] = filterString
+        key2val["eV"] = NCE2eV(float(key2val["NCE"]), float(key2val["Isolation Center"]), int(key2val["z"]))
         
         print(key2val)
         sys.exit()
