@@ -35,7 +35,7 @@ def NCE2eV(nce, mz, charge):
     elif charge==3: cf=0.85
     elif charge==4: cf=0.8
     elif charge>=5: cf=0.75
-    ev = nce*mz*500*cf
+    ev = nce*(mz/500)*cf
     return ev
 
 
