@@ -84,5 +84,5 @@ for index, row in data.iterrows():
             elif k == "RawOvFtT:":
                 key2val["RawOvFtT"] = v
         
-        print(scanFilter.toString())
+        print(scanFilter.ToString())
         sys.exit()
