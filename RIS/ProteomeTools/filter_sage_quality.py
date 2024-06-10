@@ -92,7 +92,9 @@ for index, row in data.iterrows():
             print(filterString.split()[-2].split("@"))
             continue
         key2val["Reaction Type"] = re.split("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0]
-        if key2val["Reaction Type"] != "hcd": continue
+        if key2val["Reaction Type"] != "hcd": 
+            print(key2val["Reaction Type"])
+            continue
         
         key2val["Analyzer"] = filterString.split()[0]
         key2val["Isolation Center"] = filterString.split()[-2].split("@")[0]
