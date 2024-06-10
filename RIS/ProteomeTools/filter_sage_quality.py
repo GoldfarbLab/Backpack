@@ -91,8 +91,8 @@ for index, row in data.iterrows():
         if len(filterString.split()[-2].split("@")) > 2: 
             print(filterString.split()[-2].split("@"))
             #continue
-        print(filterString.split()[-2].split("@"))
-        key2val["Reaction Type"] = re.split("[a-zA-Z]+", filterString.split()[-2].split("@")[1])
+        print(re.findall("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0])
+        key2val["Reaction Type"] = re.findall("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0]
         if key2val["Reaction Type"] != "hcd": 
             print(key2val["Reaction Type"])
             #continue
