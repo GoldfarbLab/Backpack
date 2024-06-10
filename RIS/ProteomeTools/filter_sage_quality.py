@@ -50,7 +50,7 @@ instrument_id = rawFile.GetInstrumentData().SerialNumber
 
 print(instrument_model, instrument_id)
 
-for row in data.iterrows():
+for index, row in data.iterrows():
     scan_id = int(row["scannr"].split("=")[-1])
     
     # Get the scan filter for this scan number
