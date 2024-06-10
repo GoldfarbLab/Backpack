@@ -12,12 +12,14 @@ from System.Collections.Generic import *
 clr.AddReference(os.path.normpath("/RawFileReader/Libs/Net471/ThermoFisher.CommonCore.Data.dll"))
 clr.AddReference(os.path.normpath("/RawFileReader/Libs/Net471/ThermoFisher.CommonCore.RawFileReader.dll"))
 
-
+from ThermoFisher.CommonCore.RawFileReader import RawFileReaderAdapter
+from ThermoFisher.CommonCore.Data.Business import Device, GenericDataTypes, SampleType, Scan
 
 parser = argparse.ArgumentParser(
                     prog='Sage filter',
                     description='Filter Sage results by ID quality metrics')
 parser.add_argument("sage_results")
+parser.add_argument("raw_path")
 parser.add_argument("-m", "--psm_q", default=0.01, type=float)
 parser.add_argument("-p", "--pep_q", default=0.01, type=float)
 parser.add_argument("-e", "--post_error", default=-1, type=float)
@@ -34,3 +36,14 @@ data = data[data["proteins"].str.contains("pt\|")]
 data = data[data["label"] == 1]
 
 data.to_csv(args.sage_results + ".filtered", sep="\t", index=False, quoting=csv.QUOTE_NONE)
+
+
+#################################################################################
+rawFile = RawFileReaderAdapter.FileFactory(args.raw_path)
+
+rawFile.SelectInstrument(Device.MS, 1)
+
+instrument_model = rawFile.GetInstrumentData().Model
+instrument_id = rawFile.GetInstrumentData().SerialNumber
+
+print(instrument_model, instrument_id)
