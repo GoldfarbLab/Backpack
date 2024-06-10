@@ -84,16 +84,5 @@ for index, row in data.iterrows():
             elif k == "RawOvFtT:":
                 key2val["RawOvFtT"] = v
         
-        # Get the Trailer Extra data fields present in the RAW file
-        trailerFields = rawFile.GetTrailerExtraHeaderInformation()
-
-        # Display each value
-        i = 0
-        print('Trailer Extra Data Information:')
-
-        for field in trailerFields:
-            print('   Field {} = {} storing data of type {}'.format(
-                i, field.Label, Enum.GetName(GenericDataTypes, field.DataType)))
-            i += 1
-        
+        print(scanFilter.toString())
         sys.exit()
