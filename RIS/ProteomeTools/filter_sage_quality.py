@@ -91,7 +91,8 @@ for index, row in data.iterrows():
         if len(filterString.split()[-2].split("@")) > 2: 
             print(filterString.split()[-2].split("@"))
             #continue
-        key2val["Reaction Type"] = re.split("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0]
+        print(filterString.split()[-2].split("@"))
+        key2val["Reaction Type"] = re.split("[a-zA-Z]+", filterString.split()[-2].split("@")[1])
         if key2val["Reaction Type"] != "hcd": 
             print(key2val["Reaction Type"])
             #continue
@@ -100,7 +101,7 @@ for index, row in data.iterrows():
         key2val["Isolation Center"] = filterString.split()[-2].split("@")[0]
         key2val["NCE"] = re.split("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[1]
         key2val["LowMz"] = filterString.split()[-1].split("-")[0][1:]
-        key2val["HighMz"] = filterString.split()[-1].split("-")[1][1:]
+        key2val["HighMz"] = filterString.split()[-1].split("-")[1][0:-1]
         key2val["Scan Filter"] = filterString
         
         print(key2val)
