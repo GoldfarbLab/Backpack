@@ -10,7 +10,7 @@ from System import *
 from System.Collections.Generic import *
 
 clr.AddReference(os.path.normpath("/RawFileReader/Libs/Net471/ThermoFisher.CommonCore.Data.dll"))
-#clr.AddReference(os.path.normpath("/RawFileReader/Libs/NetCore/ThermoFisher.CommonCore.RawFileReader.dll"))
+clr.AddReference(os.path.normpath("/RawFileReader/Libs/Net471/ThermoFisher.CommonCore.RawFileReader.dll"))
 
 
 
