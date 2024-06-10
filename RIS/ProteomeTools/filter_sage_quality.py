@@ -88,7 +88,9 @@ for index, row in data.iterrows():
         filterString = scanFilter.ToString()
         
         # Don't include multiple reactions
-        if len(filterString.split()[-2].split("@")) > 2: continue
+        if len(filterString.split()[-2].split("@")) > 2: 
+            print(filterString.split()[-2].split("@"))
+            continue
         key2val["Reaction Type"] = re.split("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0]
         if key2val["Reaction Type"] != "hcd": continue
         
