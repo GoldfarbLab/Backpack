@@ -14,6 +14,8 @@ clr.AddReference(os.path.normpath("/RawFileReader/Libs/Net471/ThermoFisher.Commo
 
 from ThermoFisher.CommonCore.RawFileReader import RawFileReaderAdapter
 from ThermoFisher.CommonCore.Data.Business import Device, GenericDataTypes, SampleType, Scan
+from ThermoFisher.CommonCore.Data.FilterEnums import IonizationModeType, MSOrderType
+from ThermoFisher.CommonCore.Data.Interfaces import IScanEventBase, IScanFilter
 
 parser = argparse.ArgumentParser(
                     prog='Sage filter',
@@ -47,3 +49,30 @@ instrument_model = rawFile.GetInstrumentData().Model
 instrument_id = rawFile.GetInstrumentData().SerialNumber
 
 print(instrument_model, instrument_id)
+
+for row in data.iterrows():
+    scan_id = int(row["scannr"].split("=")[-1])
+    
+    # Get the scan filter for this scan number
+    scanFilter = IScanFilter(rawFile.GetFilterForScanNumber(scan_id))
+
+    # Get the scan event for this scan number
+    scanEvent = IScanEventBase(rawFile.GetScanEventForScanNumber(scan_id))
+    
+    # Get the ionizationMode, MS2 precursor mass, collision
+    # energy, and isolation width for each scan
+    if scanFilter.MSOrder == MSOrderType.Ms2:
+        reaction = scanEvent.GetReaction(0)
+        collisionEnergy = reaction.CollisionEnergy
+        isolationWidth = reaction.IsolationWidth
+        
+        # Get the trailer extra data for this scan and then look
+        # for the monoisotopic m/z value in the trailer extra data
+        # list
+        trailerData = rawFile.GetTrailerExtraInformation(scan_id)
+        
+        for i in range(trailerData.Length):
+            print(trailerData.Labels[i])
+            
+        print(collisionEnergy, isolationWidth)
+        sys.exit()
