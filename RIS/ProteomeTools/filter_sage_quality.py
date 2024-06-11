@@ -23,9 +23,13 @@ parser = argparse.ArgumentParser(
                     description='Filter Sage results by ID quality metrics')
 parser.add_argument("sage_results")
 parser.add_argument("raw_path")
-parser.add_argument("-m", "--psm_q", default=0.01, type=float)
-parser.add_argument("-p", "--pep_q", default=0.01, type=float)
-parser.add_argument("-e", "--post_error", default=-1, type=float)
+parser.add_argument("--psm_q", default=0.01, type=float)
+parser.add_argument("--pep_q", default=0.01, type=float)
+parser.add_argument("--post_error", default=-1, type=float)
+parser.add_argument("--analyzer", default="FTMS")
+parser.add_argument("--reaction", default="hcd")
+parser.add_argument("--min_purity", default=0.90, type=float)
+parser.add_argument("--min_iso_cs", default=0.95, type=float)
 args = parser.parse_args()
 
 
@@ -100,10 +104,13 @@ for index, row in data.iterrows():
         
         # Don't include multiple reactions
         if len(filterString.split()[-2].split("@")) > 2: continue
+        
         key2val["Reaction Type"] = re.findall("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0]
-        if key2val["Reaction Type"] != "hcd": continue
+        if key2val["Reaction Type"] != args.reaction: continue
         
         key2val["Analyzer"] = filterString.split()[0]
+        if key2val["Analyzer"] != args.analyzer: continue
+        
         key2val["Isolation Center"] = filterString.split()[-2].split("@")[0]
         key2val["NCE"] = re.split("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[1]
         key2val["LowMz"] = filterString.split()[-1].split("-")[0][1:]
