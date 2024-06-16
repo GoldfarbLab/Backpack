@@ -1,0 +1,52 @@
+{
+    "database": {
+        "bucket_size": 8192,
+        "enzyme": {
+            "missed_cleavages": 0,
+            "min_len": 5,
+            "max_len": 20,
+            "cleave_at": "KR",
+            "semi_enzymatic": false
+        },
+        "fragment_min_mz": 150.0,
+        "fragment_max_mz": 1500.0,
+        "peptide_min_mass": 500.0,
+        "peptide_max_mass": 8000.0,
+        "ion_kinds": [
+            "b",
+            "y"
+        ],
+        "min_ion_index": 2,
+        "max_variable_mods": 31,
+        "static_mods": {
+            "C": 57.021464
+        },
+        "variable_mods": {
+            "M": [15.994915]
+        },
+        "decoy_tag": "rev_",
+        "generate_decoys": true,
+        "fasta": "/storage1/fs1/d.goldfarb/Active/Backpack/fasta/human-2024-06-04.fas"
+    },
+    "precursor_tol": {
+        "ppm": [-10, 10]
+    },
+    "fragment_tol": {
+        "ppm": [-10, 10]
+    },
+    "precursor_charge": [1, 4],
+    "isotope_errors": [0, 1],
+
+
+    "deisotope": true,
+    "chimera": false,
+    "min_peaks": 15,
+    "max_peaks": 250,
+    "min_matched_peaks": 4,
+    "report_psms": 1,
+    "predict_rt": true,
+    "mzml_paths": [
+        "/storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/01640a_BA5-Thermo_SRM_Pool_33_01_01-DDA-1h-R4.mzML"
+    ],
+    "output_directory": "/storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/sage/open/"
+}

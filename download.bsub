@@ -8,7 +8,9 @@
 #BSUB -n 1
 #BSUB -W 6000
 #BSUB -M 1GB
-#BSUB -o /scratch1/fs1/d.goldfarb/backpack/logs/download.%J.out.txt
-#BSUB -e /scratch1/fs1/d.goldfarb/backpack/logs/download.%J.err.txt
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/download.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/download.%J.err.txt
 
-python ./download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/ /2017/02/PXD004732 --exclude=ETD
+
+#python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/ /2017/02/PXD004732 --exclude=ETD
+python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/ProCal/ /2017/09/PXD006832/ --include=CE

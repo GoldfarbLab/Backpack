@@ -13,4 +13,4 @@
 
 source LSF_SCRIPT_PATH/config.sh
 
-python3 ${SRC_PATH}/extractEV.py /storage1/fs1/d.goldfarb/Active/Backpack/NCE/Hela_Neo_uPAC_50cm_200ng_20240608_DDA_01.raw
+python3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/extractEV.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/NCE/Hela_Neo_uPAC_50cm_200ng_20230719_01.raw /storage1/fs1/d.goldfarb/Active/Backpack/raw/NCE/eclipse_2023.tsv

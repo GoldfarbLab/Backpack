@@ -19,44 +19,19 @@ from ThermoFisher.CommonCore.Data.FilterEnums import IonizationModeType, MSOrder
 from ThermoFisher.CommonCore.Data.Interfaces import IScanEventBase, IScanFilter
 
 parser = argparse.ArgumentParser(
-                    prog='Sage filter',
-                    description='Filter Sage results by ID quality metrics')
-parser.add_argument("sage_results")
+                    prog='eV extractor',
+                    description='get data for NCE to eV mapping')
 parser.add_argument("raw_path")
-parser.add_argument("--psm_q", default=0.01, type=float)
-parser.add_argument("--pep_q", default=0.01, type=float)
-parser.add_argument("--post_error", default=-1, type=float)
-parser.add_argument("--analyzer", default="FTMS")
-parser.add_argument("--reaction", default="hcd")
-parser.add_argument("--min_purity", default=0.90, type=float)
-parser.add_argument("--min_iso_cs", default=0.95, type=float)
+parser.add_argument("out_path")
 args = parser.parse_args()
-
-
-def NCE2eV(nce, mz, charge):
-    cf = 1.0
-    if charge==2: cf=0.9
-    elif charge==3: cf=0.85
-    elif charge==4: cf=0.8
-    elif charge>=5: cf=0.75
-    ev = nce*(mz/500)*cf
-    return ev
-
-
-#################################################################################
-
-data = pd.read_csv(args.sage_results, sep="\t")
-data = data[data["spectrum_q"] <= args.psm_q]
-data = data[data["peptide_q"] <= args.pep_q]
-data = data[data["posterior_error"] <= args.post_error]
-data = data[data["proteins"].str.contains("pt\|")]
-data = data[data["label"] == 1]
-
-data.to_csv(args.sage_results + ".filtered", sep="\t", index=False, quoting=csv.QUOTE_NONE)
 
 
 #################################################################################
 rawFile = RawFileReaderAdapter.FileFactory(args.raw_path)
+
+if not rawFile.IsOpen or rawFile.IsError:
+    print('Unable to access the RAW file using the RawFileReader class!')
+    quit()
 
 rawFile.SelectInstrument(Device.MS, 1)
 
@@ -66,9 +41,13 @@ creation_date = rawFile.FileHeader.CreationDate
 
 print(instrument_model, instrument_id, creation_date)
 
-for index, row in data.iterrows():
-    scan_id = int(row["scannr"].split("=")[-1])
-    
+firstScanNumber = rawFile.RunHeaderEx.FirstSpectrum
+lastScanNumber = rawFile.RunHeaderEx.LastSpectrum
+
+outfile = csv.writer(open(args.out_path, "w"), delimiter="\t")
+outfile.writerow(["center", "z", "NCE", "eV"])
+
+for scan_id in range(firstScanNumber, lastScanNumber):
     # Get the scan filter for this scan number
     scanFilter = IScanFilter(rawFile.GetFilterForScanNumber(scan_id))
 
@@ -80,7 +59,6 @@ for index, row in data.iterrows():
     if scanFilter.MSOrder == MSOrderType.Ms2:
         reaction = scanEvent.GetReaction(0)
         collisionEnergy = reaction.CollisionEnergy
-        isolationWidth = reaction.IsolationWidth
         
         # Get the trailer extra data for this scan and then look
         # for the monoisotopic m/z value in the trailer extra data
@@ -92,32 +70,22 @@ for index, row in data.iterrows():
             k = trailerData.Labels[i]
             v = trailerData.Values[i]
             if k == "Charge State:":
-                key2val["z"] = v
+                key2val["z"] = v.strip()
                 if int(v) < 1 or int(v) > 8: continue
-            elif k == "Orbitrap Resolution:":
-                key2val["resolution"] = v
             elif k == "HCD Energy:":
-                key2val["NCE"] = v
-            elif k == "RawOvFtT:":
-                key2val["RawOvFtT"] = v
+                key2val["NCE"] = v.strip()
+            elif k == "HCD Energy V:":
+                key2val["eV"] = v.strip()
+            elif k == "HCD Energy eV:":
+                key2val["eV"] = v.strip()
         
         filterString = scanFilter.ToString()
         
         # Don't include multiple reactions
         if len(filterString.split()[-2].split("@")) > 2: continue
-        
         key2val["Reaction Type"] = re.findall("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0]
-        if key2val["Reaction Type"] != args.reaction: continue
-        
-        key2val["Analyzer"] = filterString.split()[0]
-        if key2val["Analyzer"] != args.analyzer: continue
+        if key2val["Reaction Type"] != "hcd": continue
         
         key2val["Isolation Center"] = filterString.split()[-2].split("@")[0]
-        key2val["NCE"] = re.split("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[1]
-        key2val["LowMz"] = filterString.split()[-1].split("-")[0][1:]
-        key2val["HighMz"] = filterString.split()[-1].split("-")[1][0:-1]
-        key2val["Scan Filter"] = filterString
-        key2val["eV"] = NCE2eV(float(key2val["NCE"]), float(key2val["Isolation Center"]), int(key2val["z"]))
         
-        print(key2val)
-        sys.exit()
+        outfile.writerow([key2val["Isolation Center"], key2val["z"], key2val["NCE"], key2val["eV"]])
