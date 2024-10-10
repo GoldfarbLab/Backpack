@@ -1,0 +1,14 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/raw:latest)'
+#BSUB -J xv_split
+#BSUB -q general
+#BSUB -R 'rusage[mem=16GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 3000
+#BSUB -M 16GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/xv_split.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/xv_split.%J.err.txt
+
+python3.9 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/xv_split.py /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/dataset.msp /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/pep.msp /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/

@@ -2,6 +2,7 @@
 import sys
 import os
 import argparse
+import time
 import re as re
 from ftplib import FTP
 from datetime import datetime
@@ -14,14 +15,15 @@ parser = argparse.ArgumentParser(
                     description='Downloads PRIDE raw files for a specific project')
 parser.add_argument("local_path")
 parser.add_argument("PXD")
-parser.add_argument("-e", "--exclude")
-parser.add_argument("-i", "--include")
+parser.add_argument("-e", "--exclude", nargs='?', const='')
+parser.add_argument("-i", "--include", nargs='?', const='')
 args = parser.parse_args()
 
+print(args.local_path, args.PXD, args.exclude, args.include)
 local_path = args.local_path
 PXD = "/pride/data/archive/" + args.PXD
-exclusion_pattern = args.exclude
-inclusion_pattern = args.include
+exclusion_pattern = args.exclude.strip('"')
+inclusion_pattern = args.include.strip('"')
 
 
 if not os.path.exists(local_path):
@@ -38,9 +40,9 @@ def getProjectRawFiles(PXD):
     return raw_files
 
 def filterRawFiles(raw_files):
-    if exclusion_pattern is not None:
+    if exclusion_pattern is not None and exclusion_pattern != "":
         raw_files = [f for f in raw_files if re.search(exclusion_pattern, f) is None]
-    if inclusion_pattern is not None:
+    if inclusion_pattern is not None and inclusion_pattern != "":
         raw_files = [f for f in raw_files if re.search(inclusion_pattern, f) is not None]
     return raw_files
         
@@ -51,6 +53,7 @@ def downloadRawFile(local_path, PXD, rawfile):
     with open(local_filename, 'wb') as fp:
         ftp.retrbinary("RETR " + rawfile, fp.write)
     ftp.quit()
+    return 1
 
 def connectToPride(PXD):
     ftp = FTP('ftp.pride.ebi.ac.uk')
@@ -63,7 +66,17 @@ def connectToPride(PXD):
 raw_files = getProjectRawFiles(PXD)
 print("Raw files found:", len(raw_files))
 for i, f in enumerate(raw_files):
-    start=datetime.now()
-    print("Downloading:", f, i)
-    downloadRawFile(local_path, PXD, f)
-    print("Finished", datetime.now()-start)
+    if os.path.exists(os.path.join(local_path, f)):
+        print("exists!")
+    else:
+        start=datetime.now()
+        print("Downloading:", f, i)
+        for tries in range(5):
+            try:
+                downloadRawFile(local_path, PXD, f)
+                break
+            except Exception as e:
+                print("Failed, trying again. ", tries, e)
+                time.sleep(10)
+    
+        print("Finished", datetime.now()-start)

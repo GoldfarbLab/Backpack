@@ -1,0 +1,28 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(quay.io/biocontainers/thermorawfileparser:1.4.4--ha8f3691_0)'
+#BSUB -J raw_convert[1-10]
+#BSUB -q general
+#BSUB -R 'rusage[mem=8GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 6000
+#BSUB -M 8GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/logs/convert.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/logs/convert.%J.err.txt
+
+# Make output directory
+#mkdir -p /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/mzML
+mkdir -p /storage1/fs1/d.goldfarb/Active/Backpack/mzML/JOB_NAME/ROW_NAME/
+
+COUNTER=0
+for file in /storage1/fs1/d.goldfarb/Active/Backpack/raw/JOB_NAME/ROW_NAME/*; do
+    if [ $((${COUNTER}%10)) == $((${LSB_JOBINDEX}-1)) ]; then
+        DATA_BASE_NAME=$(basename -- "$file")
+        echo "Converting: " $DATA_BASE_NAME
+
+        ThermoRawFileParser.sh -i $file -o /storage1/fs1/d.goldfarb/Active/Backpack/mzML/JOB_NAME/ROW_NAME/
+    fi
+    COUNTER=$[$COUNTER +1]
+done
+

@@ -1,0 +1,56 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/raw:latest)'
+#BSUB -J annotate[1-10]
+#BSUB -q general
+#BSUB -R 'rusage[mem=1GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 6000
+#BSUB -M 1GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/logs/annotate.%J.%I.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/logs/annotate.%J.%I.err.txt
+
+
+# Make output directory
+mkdir -p /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/annotated
+
+COUNTER=0
+for file in /storage1/fs1/d.goldfarb/Active/Backpack/raw/JOB_NAME/ROW_NAME/*; do
+    if [ $((${COUNTER}%10)) == $((${LSB_JOBINDEX}-1)) ]; then
+        DATA_BASE_NAME=$(basename -- "$file")
+        filename="${DATA_BASE_NAME%.*}"
+        SAGE_DIR="/scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/sage/$filename/semi"
+        ANNOTATED_DIR="/scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/annotated/${filename}/semi/"
+        
+        echo "Annotating semi-tryptic: " $file
+        mkdir -p $ANNOTATED_DIR
+        # annotate semi
+        python3.9 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/filter_sage_quality.py $SAGE_DIR/results.sage.tsv $file $ANNOTATED_DIR --min_purity 0.9 --min_iso_cs 0.95
+        # zip and move results
+        mkdir -p /storage1/fs1/d.goldfarb/Active/Backpack/results/JOB_NAME/ROW_NAME/${filename}
+        tar -czf /storage1/fs1/d.goldfarb/Active/Backpack/results/JOB_NAME/ROW_NAME/${filename}/sage_semi.json.tgz $SAGE_DIR/results.json
+        tar -czf /storage1/fs1/d.goldfarb/Active/Backpack/results/JOB_NAME/ROW_NAME/${filename}/sage_semi.tsv.tgz $SAGE_DIR/results.sage.tsv
+        tar -czf /storage1/fs1/d.goldfarb/Active/Backpack/results/JOB_NAME/ROW_NAME/${filename}/spectra_semi.msp.tgz $ANNOTATED_DIR/spectra.msp
+	tar -czf /storage1/fs1/d.goldfarb/Active/Backpack/results/JOB_NAME/ROW_NAME/${filename}/lfq_semi.tsv.tgz $SAGE_DIR/lfq.tsv
+
+
+
+        SAGE_DIR="/scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/sage/$filename/open"
+        ANNOTATED_DIR="/scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/annotated/${filename}/open/"
+        
+        echo "Annotating open: " $file
+        mkdir -p $ANNOTATED_DIR
+        # annotate open
+        python3.9 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/filter_sage_quality.py $SAGE_DIR/results.sage.tsv $file $ANNOTATED_DIR --min_purity 0.9 --min_iso_cs 0.95
+        # zip and move results
+        tar -czf /storage1/fs1/d.goldfarb/Active/Backpack/results/JOB_NAME/ROW_NAME/${filename}/sage_open.json.tgz $SAGE_DIR/results.json
+        tar -czf /storage1/fs1/d.goldfarb/Active/Backpack/results/JOB_NAME/ROW_NAME/${filename}/sage_open.tsv.tgz $SAGE_DIR/results.sage.tsv
+        tar -czf /storage1/fs1/d.goldfarb/Active/Backpack/results/JOB_NAME/ROW_NAME/${filename}/spectra_open.msp.tgz  $ANNOTATED_DIR/spectra.msp
+	tar -czf /storage1/fs1/d.goldfarb/Active/Backpack/results/JOB_NAME/ROW_NAME/${filename}/lfq_open.tsv.tgz $SAGE_DIR/lfq.tsv
+    fi
+    COUNTER=$[$COUNTER +1]
+done
+
+
+

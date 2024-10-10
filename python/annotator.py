@@ -1,7 +1,7 @@
 import pyopenms as oms
 import pyopenms.Constants
 import msp
-from annotation import annotation, annotation_list
+import annotation
 import utils
 import math
 import sys
@@ -206,16 +206,16 @@ class annotator:
     def generateBYFragments(self, peptide):
         terminal_fragments = []
         for frag_length in range(1, peptide.size()):
-            anno = annotation("y"+str(frag_length), [], [], 0, 0, None)
+            anno = annotation.annotation("y"+str(frag_length), [], [], 0, 0, None)
             terminal_fragments.append([anno.getName(), anno])
-            anno = annotation("b"+str(frag_length), [], [], 0, 0, None)
+            anno = annotation.annotation("b"+str(frag_length), [], [], 0, 0, None)
             terminal_fragments.append([anno.getName(), anno])
             
         #if peptide.hasNTerminalModification():
-        #    anno = msp_parser.annotation("y"+str(peptide.size()), [], [], 0, 0, None)
+        #    anno = annotation.annotation("y"+str(peptide.size()), [], [], 0, 0, None)
         #    terminal_fragments.append([anno.getName(), anno])
         #if peptide.hasCTerminalModification():
-        #    anno = msp_parser.annotation("b"+str(peptide.size()), [], [], 0, 0, None)
+        #    anno = annotation.annotation("b"+str(peptide.size()), [], [], 0, 0, None)
         #    terminal_fragments.append([anno.getName(), anno])
             
         return terminal_fragments
@@ -224,7 +224,7 @@ class annotator:
         terminal_fragments = []
         for frag_start in range(1, peptide.size()-1):
             for frag_length in range(2, peptide.size()-frag_start):
-                anno = annotation("Int_"+str(frag_start)+">"+str(frag_length), [], [], 0, 0, None)
+                anno = annotation.annotation("Int_"+str(frag_start)+">"+str(frag_length), [], [], 0, 0, None)
                 terminal_fragments.append([anno.getName(), anno])
         return terminal_fragments
                 
@@ -243,7 +243,7 @@ class annotator:
 
         out_fragments = []
         for frag_name in immonium_fragments:
-            annot = annotation(frag_name, [], [], 1, 0, None)
+            annot = annotation.annotation(frag_name, [], [], 1, 0, None)
             out_fragments.append([frag_name, annot])
         
         return out_fragments
@@ -264,10 +264,10 @@ class annotator:
                 annot_iso.error = error_ppm
                 
                 scan.annotations[index].entries.append(annot_iso)
-                scan.mask[index] = "0"
+                scan.mask[index] = 0
                 return True
         elif iso == 0:
-            scan.tmp_mask.append([mz, deepcopy(base_annot), "1"])
+            scan.tmp_mask.append([mz, deepcopy(base_annot), 1])
         return False
         
     
@@ -293,7 +293,7 @@ class annotator:
                 mz = self.getMZ(mono_mass, base_annot.z, iso)
                 if not self.annotatePeak(scan, base_annot, mz, iso, error_tol): break
             # check larger isotopes
-            for iso in range(main_iso+1, scan.getMaxIsotope()+1):
+            for iso in range(main_iso+1, scan.getMaxIsotope()+2):
                 mz = self.getMZ(mono_mass, base_annot.z, iso)
                 if not self.annotatePeak(scan, base_annot, mz, iso, error_tol): break
             
@@ -425,7 +425,7 @@ class annotator:
                             if not isC2H5SNOFound: break
     
         if config['precursor_ions']:   
-            annot = annotation("p", [], [], 0, 0, None)
+            annot = annotation.annotation("p", [], [], 0, 0, None)
             annot.z = scan.metaData.z
             annot.NL = []
             self.scanForIsotopes(scan, annot, error_tol, count_matches)
@@ -491,7 +491,7 @@ class annotator:
         
         
         if config['internal_ions']:
-            internal_fragments = self.generateIntFragments(scan.peptide, max_comp_length=2)
+            internal_fragments = self.generateIntFragments(scan.peptide)
             for frag_name, annot in internal_fragments:
                 for z in range(1, 1+min(annot.length, scan.metaData.z)):
                     annot.z = z
@@ -553,21 +553,22 @@ class annotator:
                                     self.scanForIsotopes(scan, annot, error_tol, count_matches)
         
         # update annotation counts by subtracting away ambigous annotations
-        subtracted_annots = set()
-        for annot_list in scan.annotations:
-            if len(annot_list.entries) > 1:
-                iso2count = defaultdict(int)
-                # are there the same isotopes present?
-                for annot in annot_list.entries:
-                    iso2count[annot.isotope] += 1
-                # subtract the same isotopes:
-                for annot in annot_list.entries:
-                    annot_name = annot.getName()
-                    if annot_name not in subtracted_annots:
-                        if iso2count[annot.isotope] > 1:
-                            subtracted_annots.add(annot_name)
-                            self.match2stats[annot_name][0] -= 1
-                            self.match2stats[annot_name][1] -= 1
+        if count_matches:
+            subtracted_annots = set()
+            for annot_list in scan.annotations:
+                if len(annot_list.entries) > 1:
+                    iso2count = defaultdict(int)
+                    # are there the same isotopes present?
+                    for annot in annot_list.entries:
+                        iso2count[annot.isotope] += 1
+                    # subtract the same isotopes:
+                    for annot in annot_list.entries:
+                        annot_name = annot.getName()
+                        if annot_name not in subtracted_annots:
+                            if iso2count[annot.isotope] > 1:
+                                subtracted_annots.add(annot_name)
+                                self.match2stats[annot_name][0] -= 1
+                                self.match2stats[annot_name][1] -= 1
                         
         return scan
     
@@ -606,7 +607,7 @@ class annotator:
                     #print(mz, mz_theo, ppm, annot.toString())
                     
         if len(x) < 4:
-            print(scan.getName(), len(ppms))
+            print(scan.name, len(ppms))
             return self.calibrateSpectrumMedian(scan, eps)
     
         # least squares
@@ -651,3 +652,12 @@ class annotator:
         
         scan.spectrum.set_peaks([mzs, intensities])
         return scan
+    
+    
+    
+    
+    
+    
+    
+    
+    

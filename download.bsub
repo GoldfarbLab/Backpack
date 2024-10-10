@@ -12,5 +12,14 @@
 #BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/download.%J.err.txt
 
 
-#python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/ /2017/02/PXD004732 --exclude=ETD
-python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/ProCal/ /2017/09/PXD006832/ --include=CE
+#python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/21PTMs/ /2018/06/PXD009449/ --exclude=ETD --include=""
+#python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part4/ /2021/01/PXD023119/ --exclude=ETD --include=""
+python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part5/ /2021/04/PXD023120/ --exclude=ETD --include=""
+
+#python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/ /2021/04/PXD021013/ --exclude=ETD --include=""
+#python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/ProCal/ /2017/09/PXD006832/ --include=CE
+
+
+
+#python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/ /2021/04/PXD021013/ --exclude=ETD --include=""
+#python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part2/ /2021/04/PXD021013/ --exclude=ETD --include=""

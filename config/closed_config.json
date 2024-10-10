@@ -2,7 +2,7 @@
     "database": {
         "bucket_size": 8192,
         "enzyme": {
-            "missed_cleavages": 2,
+            "missed_cleavages": 3,
             "min_len": 5,
             "max_len": 60,
             "cleave_at": "KR",
@@ -26,7 +26,7 @@
             "[": [42.010565]
         },
         "decoy_tag": "rev_",
-        "generate_decoys": true,
+        "generate_decoys": false,
         "fasta": "/storage1/fs1/d.goldfarb/Active/Backpack/fasta/human-2024-06-04.fas"
     },
     "precursor_tol": {

@@ -1,0 +1,18 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/raw:latest)'
+#BSUB -J ion_dict
+#BSUB -q general
+#BSUB -R 'rusage[mem=1GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 300
+#BSUB -M 1GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/ion_dict.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/ion_dict.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+
+cat ${SCRATCH_PATH}/ProteomeTools/**/**/results/dict/* > ${SCRATCH_PATH}/ProteomeTools/ion_dict_raw.tsv
+python3.9 ${SRC_PATH}/python/merge_ion_dict.py ${SCRATCH_PATH}/ProteomeTools/ion_dict_raw.tsv ${SCRATCH_PATH}/ProteomeTools/ion_dict.tsv
+rm ${SCRATCH_PATH}/ProteomeTools/ion_dict_raw.tsv

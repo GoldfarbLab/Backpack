@@ -1,0 +1,15 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(python:slim)'
+#BSUB -J PRIDE_counts
+#BSUB -q general
+#BSUB -R 'rusage[mem=1GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 6000
+#BSUB -M 1GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/PRIDE_counts.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/PRIDE_counts.%J.err.txt
+
+
+python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/getPRIDEcounts.py /storage1/fs1/d.goldfarb/Active/Backpack/

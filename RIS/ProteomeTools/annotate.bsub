@@ -1,0 +1,20 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/raw:latest)'
+#BSUB -J annotate
+#BSUB -q general
+#BSUB -R 'rusage[mem=1GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 300
+#BSUB -M 1GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/annotate.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/annotate.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+
+# Make output directory
+mkdir -p ${RESULTS_PATH}/annotated/
+mkdir -p ${RESULTS_PATH}/dict/
+
+python3.9 ${SRC_PATH}/python/sage_annotate.py ${RESULTS_PATH}/sage/results.sage.tsv ${RESULTS_PATH}/sage/chronologer.tsv ${DATA_PATH} ${RESULTS_PATH}/annotated/ ${RESULTS_PATH}/dict/ --min_purity 0.9 --min_iso_cs 0.95 --protein_acc_include="pt\| JPT-" --pep_q 1 --post_error 1 --min_matched_peaks 1

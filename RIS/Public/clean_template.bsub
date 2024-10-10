@@ -1,0 +1,17 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(python:slim)'
+#BSUB -J clean
+#BSUB -q general
+#BSUB -R 'rusage[mem=1GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 100
+#BSUB -M 1GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/logs/clean.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/logs/clean.%J.err.txt
+
+# delete raw files, mzMLs, search results
+rm -r /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME
+rm -r /storage1/fs1/d.goldfarb/Active/Backpack/raw/JOB_NAME/ROW_NAME/
+rm -r /storage1/fs1/d.goldfarb/Active/Backpack/mzML/JOB_NAME/ROW_NAME/

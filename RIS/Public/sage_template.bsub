@@ -1,0 +1,34 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(ghcr.io/lazear/sage:latest)'
+#BSUB -J sage[1-10]
+#BSUB -q general
+#BSUB -R 'rusage[mem=128GB] span[hosts=1]'
+#BSUB -n 4
+#BSUB -W 6000
+#BSUB -M 128GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/logs/sage.%J.%I.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/logs/sage.%J.%I.err.txt
+
+# Make output directory
+mkdir -p /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/sage
+
+
+
+COUNTER=0
+for file in /storage1/fs1/d.goldfarb/Active/Backpack/mzML/JOB_NAME/ROW_NAME/*; do
+    if [ $((${COUNTER}%10)) == $((${LSB_JOBINDEX}-1)) ]; then
+        DATA_BASE_NAME=$(basename -- "$file")
+        filename="${DATA_BASE_NAME%.*}"
+        
+        echo "Searching semi-tryptic: " $DATA_BASE_NAME
+        mkdir -p /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/sage/${filename}/semi
+        /app/sage SAGE_SEMI_CONFIG_PATH --disable-telemetry-i-dont-want-to-improve-sage --batch-size 4 -f FASTA_PATH -o /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/sage/${filename}/semi $file
+
+        echo "Searching open: " $DATA_BASE_NAME
+        mkdir -p /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/sage/${filename}/open
+        /app/sage SAGE_OPEN_CONFIG_PATH --disable-telemetry-i-dont-want-to-improve-sage --batch-size 4 -f FASTA_PATH -o /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/sage/${filename}/open $file
+    fi
+    COUNTER=$[$COUNTER +1]
+done

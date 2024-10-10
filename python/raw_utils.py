@@ -6,12 +6,15 @@ import clr
 import pyopenms as oms
 import re as re
 from datetime import datetime
+from msp import RawFileMetaData, MS2MetaData
 
 from System import *
 from System.Collections.Generic import *
 
-clr.AddReference(os.path.normpath("/RawFileReader/Libs/Net471/ThermoFisher.CommonCore.Data.dll"))
-clr.AddReference(os.path.normpath("/RawFileReader/Libs/Net471/ThermoFisher.CommonCore.RawFileReader.dll"))
+clr.AddReference(os.path.join(os.path.dirname(__file__),"../libs/ThermoFisher.CommonCore.Data.dll"))
+clr.AddReference(os.path.join(os.path.dirname(__file__),"../libs/ThermoFisher.CommonCore.RawFileReader.dll"))
+#clr.AddReference(os.path.normpath("/RawFileReader/Libs/Net471/ThermoFisher.CommonCore.Data.dll"))
+#clr.AddReference(os.path.normpath("/RawFileReader/Libs/Net471/ThermoFisher.CommonCore.RawFileReader.dll"))
 
 from ThermoFisher.CommonCore.RawFileReader import RawFileReaderAdapter
 from ThermoFisher.CommonCore.Data.Business import Device, GenericDataTypes, SampleType, Scan
@@ -19,37 +22,6 @@ from ThermoFisher.CommonCore.Data.FilterEnums import IonizationModeType, MSOrder
 from ThermoFisher.CommonCore.Data.Interfaces import IScanEventBase, IScanFilter
 
 
-class RawFileMetaData:
-    def __init__(self, key2val):
-        self.model = key2val["instrument_model"]
-        self.instrument_id = key2val["instrument_id"]
-        self.created_date = key2val["creation_date"]
-        self.filename = key2val["filename"]
-        self.softwareVersion = key2val["software_version"]
-        
-class MS2MetaData:
-    def __init__(self, key2val):
-        self.scanID = key2val["Scan ID"]
-        self.NCE = float(key2val["NCE"])
-        self.isoWidth = float(key2val["Isolation Width"])
-        self.isoCenter = float(key2val["Isolation Center"])
-        self.RT = float(key2val["RT"])
-        self.z = int(key2val["z"])
-        self.resolution = float(key2val["Resolution"])
-        self.rawOvFtT = float(key2val["RawOvFtT"])
-        self.monoMz = float( key2val["Monoisotopic Mass"])
-        self.reactionType = key2val["Reaction Type"]
-        self.analyzer = key2val["Analyzer"]
-        self.lowMz = float(key2val["LowMz"])
-        self.highMz = float(key2val["HighMz"])
-        self.scanFilter = key2val["Scan Filter"]
-        self.purity = key2val["Purity"]
-        self.isoFit = key2val["Isotope Fit"]
-        self.LOD = key2val["LOD"]
-        self.polarity = key2val["Polarity"]
-        self.iso2eff = getUniformIsoEfficiency(getIsolatedIsotopes(self.isoCenter, self.isoWidth, self.monoMz, self.z))
-        if "eV" in key2val:
-            self.eV = float(key2val["eV"])
 
 #class IdentificationData:
 #    def __init__(self):
@@ -59,11 +31,11 @@ class MS2MetaData:
 
 def getFileMetaData(rawFile):
     key2val = dict()
-    key2val["instrument_model"] = rawFile.GetInstrumentData().Model
-    key2val["instrument_id"] = rawFile.GetInstrumentData().SerialNumber
-    key2val["creation_date"] = rawFile.FileHeader.CreationDate
-    key2val["filename"] = os.path.basename(rawFile.FileName)
-    key2val["software_version"] = rawFile.GetInstrumentData().SoftwareVersion
+    key2val["Instrument Model"] = rawFile.GetInstrumentData().Model
+    key2val["InstrumentID"] = rawFile.GetInstrumentData().SerialNumber
+    key2val["Created"] = rawFile.FileHeader.CreationDate
+    key2val["RawFile"] = os.path.basename(rawFile.FileName)
+    key2val["SoftwareVersion"] = rawFile.GetInstrumentData().SoftwareVersion
     
     return RawFileMetaData(key2val)
 
@@ -76,9 +48,9 @@ def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol
     isolationWidth = reaction.IsolationWidth
     rt = rawFile.RetentionTimeFromScanNumber(scan_id)
     
-    key2val["Scan ID"] = scan_id
+    key2val["scan_id"] = scan_id
     key2val["NCE"] = collisionEnergy
-    key2val["Isolation Width"] = isolationWidth
+    key2val["IsoWidth"] = isolationWidth
     key2val["RT"] = rt
     
     # Get the trailer extra data for this scan and then look
@@ -98,12 +70,14 @@ def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol
         elif k == "RawOvFtT:":
             key2val["RawOvFtT"] = v.strip()
         elif k == 'Monoisotopic M/Z:':
-            key2val["Monoisotopic Mass"] = v.strip()
+            key2val["MonoMZ"] = v.strip()
             if float(v) <= 0: return None
         elif k == "HCD Energy eV:":
             key2val["eV"] = v.strip()
         elif k == "HCD Energy V:":
             key2val["eV"] = v.strip()
+        elif k == "Ion Injection Time (ms):":
+            key2val["fillTime"] = float(v.strip())
     
     filterString = scanFilter.ToString()
     
@@ -111,38 +85,48 @@ def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol
     if len(filterString.split()[-2].split("@")) > 2: return None
     
     key2val["Polarity"] = "+" if any(["+" == f for f in filterString.split()]) else "-"   
-    key2val["Reaction Type"] = re.findall("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0]
+    key2val["Reaction"] = re.findall("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0]
     key2val["Analyzer"] = filterString.split()[0]
-    key2val["Isolation Center"] = filterString.split()[-2].split("@")[0]
+    key2val["IsoCenter"] = filterString.split()[-2].split("@")[0]
     key2val["NCE"] = re.split("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[1]
-    key2val["LowMz"] = filterString.split()[-1].split("-")[0][1:]
-    key2val["HighMz"] = filterString.split()[-1].split("-")[1][0:-1]
+    key2val["LowMZ"] = filterString.split()[-1].split("-")[0][1:]
+    key2val["HighMZ"] = filterString.split()[-1].split("-")[1][0:-1]
     key2val["Scan Filter"] = filterString
-    key2val["Purity"] = getPurity(rawFile, scan_id, rt, isolationWidth, float(key2val["Isolation Center"]), float(key2val["Monoisotopic Mass"]), int(key2val["z"]), ppm_tol)
-    key2val["Isotope Fit"] = getIsotopeFit(rawFile, scan_id, rt, isolationWidth, float(key2val["Isolation Center"]), float(key2val["Monoisotopic Mass"]), int(key2val["z"]), peptide, ppm_tol)
+    
+    if key2val["Analyzer"] != "FTMS": return MS2MetaData(key2val)
+    
+    abundance, purity = getPurity(rawFile, scan_id, rt, isolationWidth, float(key2val["IsoCenter"]), float(key2val["MonoMZ"]), int(key2val["z"]), ppm_tol)
+    key2val["Purity"] = purity
+    key2val["Abundance"] = abundance
+    isoFit, isoTargInt = getIsotopeStats(rawFile, scan_id, rt, isolationWidth, float(key2val["IsoCenter"]), float(key2val["MonoMZ"]), int(key2val["z"]), peptide, ppm_tol)
+    key2val["IsoFit"] = isoFit
+    key2val["IsoTargInt"] = isoTargInt
     key2val["LOD"] = getLOD(rawFile, scan_id)
 
     return MS2MetaData(key2val)
 
 
 
+def getIsotopeStats(rawFile, scan_id, rt, iso_width, iso_center, target_mz, target_z, peptide, ppm_tol): 
+    isoFit = getIsotopeFit(rawFile, scan_id, rt, iso_width, iso_center, target_mz, target_z, peptide, ppm_tol)
+    isCentered, iso = isExpectedTarget(iso_center, target_mz, target_z, ppm_tol)
+    isoTargInt = getTargetIsoAbundance(iso, 10, peptide) if isCentered else 0
+    return isoFit, isoTargInt
+        
 
-def getIsolatedIsotopes(center, width, mono, z):
-    isotopes = set()
-    min_mz = center - width/2
-    max_mz = center + width/2
-    
-    for i in range(5):
-        iso_mz = mono + (i * oms.Constants.C13C12_MASSDIFF_U) / z
-        if min_mz <= iso_mz <= max_mz:
-            isotopes.add(i)
-    return isotopes
 
-def getUniformIsoEfficiency(isotopes):
-    iso2eff = dict()
-    for iso in isotopes:
-        iso2eff[iso] = 1
-    return iso2eff
+def getTargetIsoAbundance(iso_center, max_iso, peptide):
+    # compute expected isotope distribution
+    pep_iso_gen = oms.CoarseIsotopePatternGenerator(max_iso)
+    pep_formula = peptide.getFormula()
+    theo_iso_dist = utils.isoDist2np(pep_formula.getIsotopeDistribution(pep_iso_gen))
+    theo_iso_dist /= theo_iso_dist.max()
+    return theo_iso_dist[iso_center] if iso_center < len(theo_iso_dist) else 0.0
+
+def isExpectedTarget(iso_center, target_mz, target_z, tolerancePPM):
+    toleranceDa = utils.ppmToMass(tolerancePPM, target_mz)
+    diff = (iso_center - target_mz) / (oms.Constants.C13C12_MASSDIFF_U / target_z)
+    return diff - round(diff) <= toleranceDa and round(diff) >= 0, round(diff)
 
 def getIsotopeFit(rawFile, scan_id, rt, iso_width, iso_center, target_mz, target_z, peptide, ppm_tol): 
     # find left MS1
@@ -162,17 +146,18 @@ def getIsotopeFit(rawFile, scan_id, rt, iso_width, iso_center, target_mz, target
 def getPurity(rawFile, scan_id, rt, iso_width, iso_center, target_mz, target_z, ppm_tol): 
     # find left MS1
     MS1_scan_id_left = findLeftMS1(rawFile, scan_id)
-    purity_left = getPurityAtMS1(rawFile, iso_width, iso_center, MS1_scan_id_left, target_mz, target_z, ppm_tol) if MS1_scan_id_left > -1 else 0
+    abundance_left, purity_left = getPurityAtMS1(rawFile, iso_width, iso_center, MS1_scan_id_left, target_mz, target_z, ppm_tol) if MS1_scan_id_left > -1 else [0, 0]
     rt_left = rawFile.RetentionTimeFromScanNumber(MS1_scan_id_left) if MS1_scan_id_left > -1 else -1
     
     # find right MS1
     MS1_scan_id_right = findRightMS1(rawFile, scan_id)
-    purity_right = getPurityAtMS1(rawFile, iso_width, iso_center, MS1_scan_id_right, target_mz, target_z, ppm_tol) if MS1_scan_id_right > -1 else 0
+    abundance_right, purity_right = getPurityAtMS1(rawFile, iso_width, iso_center, MS1_scan_id_right, target_mz, target_z, ppm_tol) if MS1_scan_id_right > -1 else [0, 0]
     rt_right = rawFile.RetentionTimeFromScanNumber(MS1_scan_id_right) if MS1_scan_id_right > -1 else -1
     
     purity = utils.linearInterpolate(rt, rt_left, purity_left, rt_right, purity_right)
+    abundance = utils.linearInterpolate(rt, rt_left, abundance_left, rt_right, abundance_right)
     
-    return purity
+    return abundance, purity
 
 def findLeftMS1(rawFile, scan_id):
     for MS1_scan_id in range(scan_id, rawFile.RunHeaderEx.FirstSpectrum, -1):
@@ -228,8 +213,8 @@ def getFitAtMS1(rawFile, iso_width, iso_center, scan_id, target_mz, target_z, pe
 def getPurityAtMS1(rawFile, iso_width, iso_center, scan_id, target_mz, target_z, ppm_tol):
     target_int = getTargetIntensityInWindow(rawFile, scan_id, iso_width, iso_center, target_mz, target_z, ppm_tol)
     total_int = getIntensityInWindow(rawFile, scan_id, iso_width, iso_center)
-    if total_int == 0: return 0
-    else: return target_int / total_int
+    if total_int == 0: return 0, 0
+    else: return target_int, target_int / total_int
 
 def getIntensityInWindow(rawFile, scan_id, iso_width, iso_center):
     centroidStream = rawFile.GetCentroidStream(scan_id, False)

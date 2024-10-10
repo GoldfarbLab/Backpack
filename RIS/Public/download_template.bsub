@@ -1,0 +1,18 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(python:slim)'
+#BSUB -J download
+#BSUB -q general
+#BSUB -R 'rusage[mem=1GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 6000
+#BSUB -M 1GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/logs/download.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/logs/download.%J.err.txt
+
+#mkdir -p /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/raw/
+mkdir -p /storage1/fs1/d.goldfarb/Active/Backpack/raw/JOB_NAME/ROW_NAME/
+
+#python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /scratch1/fs1/d.goldfarb/Backpack/JOB_NAME/data/ROW_NAME/raw PXD --include=INCLUDE_STR --exclude=EXCLUDE_STR
+python /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/download_PRIDE.py /storage1/fs1/d.goldfarb/Active/Backpack/raw/JOB_NAME/ROW_NAME/ PXD --include=INCLUDE_STR --exclude=EXCLUDE_STR

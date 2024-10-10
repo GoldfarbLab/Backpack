@@ -3,7 +3,7 @@ from numpy.linalg import norm
 import pyopenms as oms
 
 def cosineSim(A,B):
-    return np.dot(A,B)/(norm(A)*norm(B))
+    return np.dot(A,B)/max(1e-8,(norm(A)*norm(B)))
 
 def getPPMAbs(mz_obs, mz_ref):
     return abs(getPPM(mz_obs, mz_ref))

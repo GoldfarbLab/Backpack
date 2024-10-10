@@ -246,6 +246,13 @@ class annotation_list:
             return "?"
         return ",".join([annot.toString() for annot in self.entries])
     
+    def annotationName(self):
+        if len(self.entries) == 0:
+            return "?"
+        elif len(self.entries) == 1 and self.entries[0].toString() == "?":
+            return "?"
+        return ",".join([annot.getName() for annot in self.entries])
+    
     def getBestEntry(self):
         if len(self.entries) == 0:
             return None

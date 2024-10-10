@@ -1,0 +1,19 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/raw:latest)'
+#BSUB -J NCE_align
+#BSUB -q general
+#BSUB -R 'rusage[mem=1GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 3000
+#BSUB -M 1GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/NCE_align.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/NCE_align.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+
+# Make output directory
+mkdir -p ${RESULTS_PATH}/NCE/
+
+python3.9 ${SRC_PATH}/python/NCE_align.py ${RESULTS_PATH}/deisotope/${DATA_NAME}.msp.deisotoped ${DATA_PATH} ${RESULTS_PATH}/NCE/

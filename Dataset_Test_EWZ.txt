@@ -1,0 +1,10 @@
+PXD	Database	Enzyme	Include	Exclude
+2024/06/PXD053144/	human-2024-06-04.fas	trypsin		
+2024/06/PXD053066/	mouse-2024-06-04.fas	trypsin		
+2024/02/PXD048380	yeast-2024-06-04.fas	trypsin		
+2019/07/PXD010154/	human-2024-06-04.fas	argC	P018442	
+2019/07/PXD010154/	human-2024-06-04.fas	chymotrypsin	P018699	R3
+2019/07/PXD010154/	human-2024-06-04.fas	aspN	P018443	
+2019/07/PXD010154/	human-2024-06-04.fas	lysC	P018444	
+2019/07/PXD010154/	human-2024-06-04.fas	lysC	P018440	
+2019/07/PXD010154/	human-2024-06-04.fas	gluC	P018441	

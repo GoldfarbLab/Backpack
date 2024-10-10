@@ -1,0 +1,16 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/pytorch_ris:pyopenms)'
+#BSUB -J train
+#BSUB -q general
+#BSUB -R 'gpuhost rusage[mem=40GB]'
+#BSUB -gpu 'num=1:gmem=30G:gmodel=NVIDIAA100_SXM4_40GB'
+#BSUB -W 20000
+#BSUB -M 40G
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/train.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/train.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+
+/bin/python3 ${SRC_PATH}/python/train.py
