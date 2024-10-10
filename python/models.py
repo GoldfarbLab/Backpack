@@ -9,6 +9,7 @@ import torch
 from torch import nn
 import numpy as np
 
+
 # NOTE: Target sigma
 # sigma(a(0,siga).dot(b(0,sigb))) = siga*sigb*(dot_dim_len)**0.5
 # try to aim for small std on residual (~ <=0.1) with sig_inp=1
@@ -297,6 +298,7 @@ class TransBlock(nn.Module):
         out = self.norm2(out)
         return out, out2+out3, FM
 
+
 class FlipyFlopy(nn.Module):
     def __init__(self,
                  in_ch=40,
@@ -312,8 +314,7 @@ class FlipyFlopy(nn.Module):
                  CEembed=False,
                  CEembed_units=256,
                  learn_ffn_embed=True,
-                 pos_type='learned',
-                 device='cpu'
+                 pos_type='learned'
                  ):
         """
         Talking heads (Making Flippy Floppy) attention model
@@ -340,14 +341,12 @@ class FlipyFlopy(nn.Module):
                          False, 1 projections after concatenation, used throughout.
         pos_type : Either 'learned' positional embedding, otherwise fourier 
                    feature embedding.
-        device : Device to run on.
 
         """
         super(FlipyFlopy, self).__init__()
         units = embedsz if eval(units)==None else units
         
         self.mask = mask
-        self.dev=device
         
         self.embed = nn.Parameter(initEmb((in_ch, embedsz)), requires_grad=True)
         if pos_type=='learned':
@@ -495,3 +494,4 @@ class FlipyFlopy(nn.Module):
         out = torch.relu(self.ProjNorm(torch.einsum('abc,bd->adc', out, self.Proj))) # bs, filtlast, seq_len
         #lst.append(out)
         return self.final(out.transpose(-1,-2)).mean(dim=1), lst, lst2
+

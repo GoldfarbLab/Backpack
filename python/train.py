@@ -8,7 +8,9 @@ import utils_unispec
 import csv
 import torch
 import wandb
+from altimeter_dataset import AltimeterDataset
 from models import FlipyFlopy
+from lightning_model import LitFlipyFlopy
 from annotation import annotation
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -70,65 +72,47 @@ from utils_unispec import LoadObj
 L = LoadObj(D, embed=model_config['CEembed'])
 
 # Training
-fpostr = np.loadtxt(os.path.join(config['base_path'], config['position_path'], "fpostrain.txt")).astype(int)
-ftr = open(os.path.join(config['base_path'], config['dataset_path'], "train.txt"), "r")
-trlab = np.array([line.strip() for line in open(os.path.join(config['base_path'], config['label_path'], "train_labels.txt"),'r')])
+pos_path_tr = os.path.join(config['base_path'], config['position_path'], "fpostrain.txt")
+data_path_tr = os.path.join(config['base_path'], config['dataset_path'], "train.txt")
+lab_path_tr = os.path.join(config['base_path'], config['label_path'], "train_labels.txt")
+dataset_train = AltimeterDataset(pos_path_tr, lab_path_tr, data_path_tr)
 
 # validation
-fposval = np.loadtxt(os.path.join(config['base_path'], config['position_path'], "fposval.txt")).astype(int)
-val_point = open(os.path.join(config['base_path'], config['dataset_path'], "val.txt"), "r")
-vallab = np.array([line.strip() for line in open(os.path.join(config['base_path'], config['label_path'], "val_labels.txt"),'r')])
+pos_path_val = os.path.join(config['base_path'], config['position_path'], "fposval.txt")
+data_path_val = os.path.join(config['base_path'], config['dataset_path'], "val.txt")
+lab_path_val = os.path.join(config['base_path'], config['label_path'], "val_labels.txt")
+dataset_val = AltimeterDataset(pos_path_val, lab_path_val, data_path_val)
 
 # testing
-fposte = np.loadtxt(os.path.join(config['base_path'], config['position_path'], "fpostest.txt")).astype(int)
-test_point = open(os.path.join(config['base_path'], config['dataset_path'], "test.txt"), "r")
-telab = np.array([line.strip() for line in open(os.path.join(config['base_path'], config['label_path'], "test_labels.txt"),'r')])
+pos_path_test = os.path.join(config['base_path'], config['position_path'], "fpostest.txt")
+data_path_test = os.path.join(config['base_path'], config['dataset_path'], "test.txt")
+lab_path_test = os.path.join(config['base_path'], config['label_path'], "test_labels.txt")
+dataset_test = AltimeterDataset(pos_path_test, lab_path_test, data_path_test)
 
-# find long sequence for mirrorplot
-Lens = []
-Lens_peaks = []
-for pos in fposte:
-    test_point.seek(pos) 
-    line = test_point.readline()
-    Lens_peaks.append(len(line.split()[1].split('|')[0]) + int(line.split()[1].split('|')[-1]))
-    Lens.append(len(line.split()[1].split('|')[0]))
-MPIND = 365 #np.argmax(Lens) #1601 #np.argmax(Lens)
-MPIND2 = np.argmax(Lens_peaks)
 
 ###############################################################################
 ################################## Model ######################################
 ###############################################################################
 
 # Instantiate model
-model = FlipyFlopy(**model_config, device=device)
-arrdims = len(model(L.input_from_str(trlab[0:1])[0], test=True)[1][0])
-model.to(device)
+litmodel = LitFlipyFlopy(FlipyFlopy(**model_config))
+arrdims = len(litmodel.model(L.input_from_str(trlab[0:1])[0], test=True)[1][0])
 
 
 # Load weights
 if config['weights'] is not None:
-    model.load_state_dict(torch.load(config['weights']))
+    litmodel.model.load_state_dict(torch.load(config['weights']))
 
 # TRANSFER LEARNING
 if config['transfer'] is not None:
-    model.final = torch.nn.Sequential(torch.nn.Linear(512,D.dicsz), torch.nn.Sigmoid())
-    for parm in model.parameters(): parm.requires_grad=False
-    for parm in model.final.parameters(): parm.requires_grad=True
+    litmodel.model.final = torch.nn.Sequential(torch.nn.Linear(512,D.dicsz), torch.nn.Sigmoid())
+    for parm in litmodel.model.parameters(): parm.requires_grad=False
+    for parm in litmodel.model.final.parameters(): parm.requires_grad=True
     
 sys.stdout.write("Total model parameters: ")
-model.total_params()
+litmodel.model.total_params()
     
-# Check if multiple GPUs are available
-if torch.cuda.device_count() > 1:
-    print("Using", torch.cuda.device_count(), "GPUs for training.")
-    model = torch.nn.DataParallel(model)  # Wrap the model with DataParallel
 
-# Optimizer
-opt = torch.optim.Adam(model.parameters(), eval(config['lr']))
-if config['restart'] is not None:
-    # loading optimizer state requires it to be initialized with model GPU parms
-    opt.load_state_dict(torch.load(config['restart'], map_location=device))
-    
 ###############################################################################
 ############################# Reproducability #################################
 ###############################################################################
@@ -142,44 +126,8 @@ with open(os.path.join(model_folder_path, "data.yaml"), "w") as file:
 with open(os.path.join(model_folder_path, "ion_dictionary.txt"), 'w') as file:
     file.write(open(config['ion_dictionary_path']).read())
     
-###############################################################################
-############################# Loss function ###################################
-###############################################################################
-
-CS = torch.nn.CosineSimilarity(dim=-1)
-def LossFunc(targ, pred, mask, info, root=config['root_int'], doFullMask=True, epsilon=1e-5):
-    LOD = [s[6] for s in info]
-    LOD = torch.FloatTensor(LOD).to(device)
-    
-    weights = [s[8] for s in info]
-    weights = torch.FloatTensor(weights).to(device)
-
-    #pred /= torch.max(pred, dim=1, keepdim=True)[0]
-    pred /= torch.sum(pred, dim=1, keepdim=True)[0]
-    targ, pred = L.apply_mask(targ, pred, mask, LOD, doFullMask)
-    
-    targ = L.root_intensity(targ, root=root) if root is not None else targ
-    pred = L.root_intensity(pred, root=root) if root is not None else pred
-    
-    cs = CS(targ, pred)
-    cs = torch.clamp(cs, min=-(1-epsilon), max=(1-epsilon))
-    sa = 1 - 2 * (torch.arccos(cs) / torch.pi)
-    if torch.any(torch.isnan(sa)):
-        print("nan unweighted SA")
-        sys.exit()
-    weighted = sa * weights
-    weighted = weighted.sum() / weights.sum()
-
-    return -weighted, sa #cs
-
-def ScribeLoss(targ, pred, root=config['root_int']):
-    targ, pred = L.apply_mask(targ, pred)
-    targ = L.root_intensity(targ, root=root) if root is not None else targ
-    pred = L.root_intensity(pred, root=root) if root is not None else pred
-    scribe = -torch.log(torch.sum(torch.pow(targ - pred, 2)))
-    return -scribe
-
-def SpectralAngle(cs):
+def SpectralAngle(cs, eps=1e-5):
+    cs = np.clip(cs, a_min=-(1-eps), a_max = 1-eps)
     return 1 - 2 * (np.arccos(cs) / np.pi)
 
 
@@ -189,24 +137,6 @@ def SpectralAngle(cs):
 ########################## Training and testing ###############################
 ###############################################################################
 
-def train_step(samples, targ, mask, info):
-    
-    samplesgpu = [m.to(device) for m in samples]
-    targgpu = targ.to(device)
-    maskgpu = mask.to(device)
-    
-    model.to(device)
-    
-    model.train()
-    model.zero_grad()
-    out,_,_ = model(samplesgpu, test=False)
-    
-    weighted_loss, losses = LossFunc(targgpu, out, maskgpu, info, root=config['root_int'])
-    #loss = loss.mean()
-    weighted_loss.backward()
-    opt.step()
-
-    return weighted_loss, losses
 
 def Testing(labels, pos, pointer, batch_size, outfile=None):
     with torch.no_grad():
