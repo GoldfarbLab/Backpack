@@ -5,7 +5,7 @@
 #BSUB -J train
 #BSUB -q general
 #BSUB -R 'gpuhost rusage[mem=80GB]'
-#BSUB -gpu 'num=1:gmem=39G:gmodel=NVIDIAA100_SXM4_40GB'
+#BSUB -gpu 'num=1:gmem=39G:gmodel=NVIDIAA100_SXM4_80GB'
 #BSUB -n 4
 #BSUB -W 20000
 #BSUB -M 80G

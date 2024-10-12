@@ -4,6 +4,11 @@ import numpy as np
 import torch as torch
 import re as re
 import os
+import pyopenms as oms
+from annotation import annotation
+import annotator
+import statistics
+from utils import getPPM
 
 class AltimeterDataModule(LightningDataModule):
     def __init__(self, config, D):
@@ -61,13 +66,17 @@ class AltimeterDataset(Dataset):
 
     def __getitem__(self, idx):
         worker_info = torch.utils.data.get_worker_info()
+        if worker_info is None:  # Handle single-worker case
+            worker_id = 0
+        else:
+            worker_id = worker_info.id
         
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
         samples, info = self.input_from_str(self.labels[idx])
         seq, mod, charge, nce, min_mz, max_mz, LOD, _, weight = info
-        targ, _, mask = self.target(self.worked_id2fdata[worker_info.id], self.positions[idx], return_mz=False)
+        targ, _, mask = self.target(self.worked_id2fdata[worker_id], self.positions[idx], return_mz=False)
         
         sample = {'samples': samples, 'targ': targ, 'mask': mask, 'seq': seq, 'mod': mod, 'charge': charge, 'nce': nce, 'min_mz': min_mz, 'max_mz': max_mz, 'LOD': LOD, 'weight': weight}
 
@@ -75,6 +84,13 @@ class AltimeterDataset(Dataset):
             sample = self.transform(sample)
 
         return sample
+    
+    def get_target_plot(self, idx):
+        samples, info = self.input_from_str(self.labels[idx])
+        seq, mod, charge, nce, min_mz, max_mz, LOD, _, weight = info
+        targ, moverz, annotated, mask = self.target_plot(self.worked_id2fdata[0], self.positions[idx])
+        
+        return [samples, targ, mask, seq, mod, charge, nce, min_mz, max_mz, LOD, weight, moverz, annotated]
     
     def input_from_str(self, strings):
         [seq,other] = strings.split('/')
@@ -98,7 +114,7 @@ class AltimeterDataset(Dataset):
         out = self.inptsr(info)
         return out, info
     
-    def target(self, fp, fstart, mint=0, return_mz=False):
+    def target(self, fp, fstart, mint=0, return_mz=False, return_annotated=False):
         """
         Create target, from streamlined dataset, to train model on.
         
@@ -119,6 +135,8 @@ class AltimeterDataset(Dataset):
         )
         moverz = (torch.zeros((1, self.D.dicsz), dtype=torch.float32) if return_mz else 0)
         masks = torch.full((1, self.D.dicsz), mint, dtype=torch.float32)
+        if return_annotated:
+            annotated = torch.zeros((1, self.D.dicsz), dtype=torch.float32)
         
         # Fill the output
         fp.seek(fstart)
@@ -133,6 +151,28 @@ class AltimeterDataset(Dataset):
             if return_mz: moverz[0,I] = float(mz)
 
         return target, moverz, masks
+    
+    def target_plot(self, fp, fstart, mint=0):
+        target = []
+        moverz = []
+        annotated = []
+        masks = []
+        fp.seek(fstart)
+        nmpks = int(fp.readline().split()[1].split("|")[-1])
+        for pk in range(nmpks):
+            [d,I,mz,intensity,mask] = fp.readline().split()
+            if float(intensity) > 0:
+                target.append(float(intensity))
+                moverz.append(float(mz))
+                masks.append(int(mask))
+                annotated.append(I != "-1")
+        target = np.array(target, dtype=np.float32)
+        mz = np.array(moverz, dtype=np.float32) 
+        annotated = np.array(annotated, dtype=np.bool_) 
+        masks = np.array(masks, dtype=np.int32)
+        target /= np.max(target)
+        
+        return target, mz, annotated, masks
     
     def inptsr(self, info):
         """
@@ -172,3 +212,216 @@ class AltimeterDataset(Dataset):
         out = [output, float(charge), float(nce)]
 
         return out
+    
+    def ConvertToPredictedSpectrum(self, pred, seq, mod, charge):
+        
+        pred_ions = np.array([self.D.index2ion[ind] for ind in range(len(self.D.index2ion))])
+        
+        # zero out impossible ions
+        filt = self.filter_fake(seq, mod, charge, pred_ions)
+
+        valid_pred = pred[filt]
+        valid_pred_ions = pred_ions[filt]
+        
+        # create new targ and mass np arrays with expected isotope size
+        size_with_isotopes = valid_pred.size
+        pred_full = np.zeros(size_with_isotopes)
+        mz_full = np.zeros(size_with_isotopes)
+        ions_full = np.empty(size_with_isotopes, dtype=object)
+
+        # populate with predicted mono isotopes
+        for i, ion_total_intensity in enumerate(valid_pred):
+            if valid_pred_ions[i][0] == "p": ion_charge = charge
+            else:
+                ion_charge = int(valid_pred_ions[i].split("^")[-1])
+            mono_mz = calcMZ(seq, ion_charge, mod, valid_pred_ions[i])
+ 
+            pred_full[i] = ion_total_intensity
+            mz_full[i] = mono_mz
+            ions_full[i] = valid_pred_ions[i]
+        
+        # return intensities and m/z's
+        pred_full /= pred_full.max()
+        
+        return pred_full, mz_full, ions_full.astype('U')
+    
+    
+    def filter_fake(self, seq, mods, charge, ions):        
+        #print(mods)
+        # modification
+        modlst = []
+        Mstart = mods.find('(') if mods!='0' else 1
+        modamt = int(mods[0:Mstart])
+        if modamt>0:
+             Mods = mods[Mstart:].split(')(') # )( always separates modifications
+             for mod in Mods:
+                 [pos,aa,typ] = re.sub('[()]', '', mod).split(',') # mod position, amino acid, and type
+                 modlst.append([int(pos), aa, typ])
+        
+        filt = []
+        for ion in ions:
+            annot = annotation.from_entry(ion, charge)
+            
+            if ion[0] == "p": ion_charge = charge
+            else:
+                ion_charge = int(ion.split("^")[-1])
+            ext = (len(seq) if ion[0]=='p' else 
+                   (int(ion[1:].split('-')[0].split('+')[0].split('^')[0])
+                    if (ion[0] in ['a','b','y']) else 0)
+                   )
+            a = True
+            # Do not include immonium ions for amino acids missing from the sequence
+            if ion[0] == "I" and "Int" not in ion:
+                a = False
+                for aa in seq:
+                    if ion[0:3] in annotator.IMMONIUM_IONS[aa]:
+                        a = True
+                if 'Carbamidomethyl' in mods and ion[0:3] in ["ICCAMA", "ICCAMB", "ICCAMC"]:
+                    a = True
+                if "Oxidation" in mods and ion[0:3] == "IMOC":
+                    a = True
+            if "Int" in ion:
+                if ion[4].isdigit():
+                    [start,ext] = [
+                        int(j) for j in 
+                        ion[4:].split("^")[0].split('+')[0].split('-')[0].split('>')
+                    ]
+                    # Do not write if the internal extends beyond length of peptide-2
+                    if (start+ext)>=(len(seq)-2): a = False
+                else:
+                    subseq = ion[4:].split("^")[0].split('+')[0].split('-')[0]
+                    if subseq not in seq:
+                        a = False
+            # The precursor ion must be the same charge
+            #if ion[0] == 'p' and ion_charge != charge:
+            #    a = False
+            if (
+                (ion[0] in ['a','b','y']) and 
+                (int(ion[1:].split('-')[0].split('+')[0].split('^')[0])>(len(seq)-1))
+                ):
+                # Do not write if a/b/y is longer than length-1 of peptide
+                a = False
+            if ('H3PO4' in ion):
+                # Do not write Phospho specific neutrals for non-phosphopeptide
+                nl_count = 1
+                for nl in annot.NL:
+                    if 'CH4SO' in nl:
+                        if nl[0].isdigit():
+                            nl_count = int(re.search("^\d*", nl).group(0))
+                if sum(['Phospho' == mod for mod in mods]) < nl_count:
+                    a = False
+            if ('CH4SO' in ion):
+                nl_count = 1
+                for nl in annot.NL:
+                    if 'CH4SO' in nl:
+                        if nl[0].isdigit():
+                            nl_count = int(re.search("^\d*", nl).group(0))
+                if self.getModCount(seq, ion, ext, 'Oxidation', modlst) < nl_count:
+                    a = False
+                    
+            if ('C2H5SNO' in ion):
+                nl_count = 1
+                for nl in annot.NL:
+                    if 'CH4SO' in nl:
+                        if nl[0].isdigit():
+                            nl_count = int(re.search("^\d*", nl).group(0))
+                if self.getModCount(seq, ion, ext, 'Carbamidomethyl', modlst) < nl_count:
+                    a = False
+            # Do not include fragments with a higher charge than the precursor
+            if ion_charge > charge:
+                a = False
+            
+            if a:
+                annot = annotation.from_entry(ion, ion_charge)
+                pep = createPeptide(seq, mods)
+                ec = annot.getEmpiricalFormula(pep).getElementalComposition()
+                
+                for element in ec:
+                    if ec[element] < 0:
+                        a = False
+                
+            filt.append(a)
+
+        return np.array(filt)
+    
+    
+    
+
+def calcMZ(seq, z, mods, annot_string):
+    # parse annotation
+    annot = annotation.from_entry(annot_string, z)
+    pep = createPeptide(seq, mods)
+    return annot.getMZ(pep)
+
+def createPeptide(seq, mod_string):
+     # create peptide sequence
+    pep = oms.AASequence.fromString(seq)
+    # add mods
+    mods = mod_string.split("(")
+    if len(mods) > 0:
+        for mod in mods[1:]:
+            index, residue, mod = mod.strip(")").split(",")
+            pep.setModification(int(index), mod)
+    return pep
+
+def filter_by_scan_range(mz, ints, min_mz, max_mz, annotated=None):
+    ints[mz < min_mz] = 0
+    ints[mz > max_mz] = 0
+    if annotated is not None:
+        annotated = annotated[ints != 0]
+    return ints[ints != 0], mz[ints != 0], annotated
+
+def match(int_targ, mz_targ, int_pred, mz_pred):
+        ppm_tol=20
+        # collapse predicted on itself
+        mz_aligned = []
+        int_pred_aligned = []
+        current_sum = 0.0
+        current_group = []
+        i = 0
+        while i < (mz_pred.size-1):
+            if abs(getPPM(mz_pred[i], mz_pred[i+1])) > ppm_tol:
+                current_group.append(mz_pred[i])
+                mz_aligned.append(statistics.fmean(current_group))
+                int_pred_aligned.append(current_sum + int_pred[i])
+                current_sum = 0.0
+                current_group.clear()
+            else:
+                current_group.append(mz_pred[i])
+                current_sum += int_pred[i]
+            i+=1
+        # last element corner case
+        current_group.append(mz_pred[i])
+        mz_aligned.append(statistics.fmean(current_group))
+        int_pred_aligned.append(current_sum + int_pred[i])
+        
+        int_pred_aligned = np.array(int_pred_aligned, dtype=np.float32)
+        mz_aligned = np.array(mz_aligned, dtype=np.float32)
+        
+        # align targ onto predicted
+        int_targ_aligned = np.zeros_like(int_pred_aligned)
+        targ_index = 0
+        for i in range(int_targ_aligned.size-1):
+            ppm_cur = abs(getPPM(mz_aligned[i], mz_targ[targ_index]))
+            ppm_next = abs(getPPM(mz_aligned[i+1], mz_targ[targ_index]))
+            
+            while ppm_cur < ppm_next and targ_index < int_targ.size:
+                int_targ_aligned[i] += int_targ[targ_index]
+                targ_index += 1
+                if targ_index >= int_targ.size: 
+                    break
+                ppm_cur = abs(getPPM(mz_aligned[i], mz_targ[targ_index]))
+                ppm_next = abs(getPPM(mz_aligned[i+1], mz_targ[targ_index]))
+            
+            if targ_index >= int_targ.size: 
+                break
+                
+        while targ_index < int_targ.size:
+            int_targ_aligned[int_targ_aligned.size-1] += int_targ[targ_index]
+            targ_index += 1
+                        
+        return int_targ_aligned, int_pred_aligned, mz_aligned
+    
+def norm_base_peak(ints):
+    ints /= np.max(ints)
+    return ints

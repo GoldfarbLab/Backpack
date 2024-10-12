@@ -7,12 +7,12 @@ import utils_unispec
 import csv
 import torch
 import wandb
-from altimeter_dataset import AltimeterDataset, AltimeterDataModule
+from altimeter_dataset import AltimeterDataModule, filter_by_scan_range, match, norm_base_peak
 from models import FlipyFlopy
 from lightning_model import LitFlipyFlopy
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, Callback
 import lightning as L
 from annotation import annotation
 import matplotlib.pyplot as plt
@@ -50,7 +50,7 @@ else:
 ############################ Weights and Biases ###############################
 ###############################################################################
 
-wandb_logger = WandbLogger(project="Altimeter", config = config, log_model="all")
+wandb_logger = WandbLogger(project="Altimeter", config = config, log_model=False)
 
 
 ###############################################################################
@@ -93,447 +93,201 @@ def SpectralAngle(cs, eps=1e-5):
     return 1 - 2 * (np.arccos(cs) / np.pi)
 
 
+###############################################################################
+############################### Visualization #################################
+###############################################################################
+
+class MirrorPlotCallback(L.Callback):
+    def on_validation_end(self, trainer, pl_module):
+        val_dataset = dm.getAltimeterDataset("val")
+        
+        entry = val_dataset.get_target_plot(0)
+        [sample, targ, mask, seq, mod, charge, nce, min_mz, max_mz, LOD, weight, moverz, annotated] = entry
+        
+        trainer.model.eval()
+        with torch.no_grad():
+            sample[0] = sample[0].unsqueeze(0)
+            pred = trainer.model(sample)
+            pred = pred.squeeze(0)
+            pred, mzpred, ionspred = val_dataset.ConvertToPredictedSpectrum(pred.cpu().numpy(), seq, mod, charge)
+            self.mirrorplot(entry, pred, mzpred, ionspred, pl_module, maxnorm=True, save=True)
+    
+    def mirrorplot(self, entry, pred, mzpred, ionspred, pl_module, maxnorm=True, save=True):
+
+        [sample, targ, mask, seq, mod, charge, nce, min_mz, max_mz, LOD, weight, mz, annotated] = entry
+
+        plt.close('all')
+
+        if maxnorm: pred /= pred.max()
+        if maxnorm: targ /= targ.max()
+        
+        sort_pred = mzpred.argsort() # ion dictionary index to m/z ascending order
+        sort_targ = mz.argsort()
+        
+        
+        pred = pred[sort_pred]
+        targ = targ[sort_targ]
+        mz = mz[sort_targ]
+        mzpred = mzpred[sort_pred]
+        ionspred = ionspred[sort_pred]
+        mask = mask[sort_targ]
+        annotated = annotated[sort_targ]
+        
+        plt.close('all')
+        fig,ax = plt.subplots()
+        fig.set_figwidth(15)
+        ax.set_xlabel("m/z")
+        ax.set_ylabel("Intensity")
+        
+        if np.max(pred) > 0:
+            max_mz_plot = max(np.max(mz), np.max(mzpred[pred > 0]))+10
+        else:
+            max_mz_plot = np.max(mz) + 10
+        
+        rect_lower = plt.Rectangle((0, -1), min_mz, 2, facecolor="#EEEEEE")
+        rect_upper = plt.Rectangle((max_mz, -1), max_mz_plot, 2, facecolor="#EEEEEE")
+        
+        ax.add_patch(rect_lower)
+        ax.add_patch(rect_upper)
+        
+        # plot annotated target peaks
+        linestyles = ["solid" if m == 0 else (0, (1, 1)) for m in mask[annotated]]
+        ax.vlines(mz[annotated], ymin=0, ymax=targ[annotated], linewidth=1, color='#111111', linestyle=linestyles)
+        # plot unannotated target peaks
+        ax.vlines(mz[annotated == False], ymin=0, ymax=targ[annotated == False], linewidth=1, color='#BBBBBB')
+        
+        
+        
+        # plot immonium
+        plot_indices = np.logical_and(np.char.find(ionspred, "Int") != 0, np.char.find(ionspred, "I") == 0)
+        colors = ["#ff7f00" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
+        ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors)
+        
+        # plot precursor
+        plot_indices = np.logical_and(np.char.find(ionspred, "-") != 0, np.char.find(ionspred, "p") == 0)
+        colors = ["#a65628" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
+        ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors)
+        # plot precursor NLs
+        plot_indices = np.logical_and(np.char.find(ionspred, "-") == 0, np.char.find(ionspred, "p") == 0)
+        colors = ["#a65628" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
+        ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors, alpha=0.5)
+        
+        # plot b ions
+        plot_indices = np.logical_and(np.char.find(ionspred, "-") != 0, np.char.find(ionspred, "b") == 0)
+        colors = ["#e41a1c" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
+        ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors)
+        # plot b NLs
+        plot_indices = np.logical_and(np.char.find(ionspred, "-") == 0, np.char.find(ionspred, "b") == 0)
+        colors = ["#e41a1c" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
+        ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors, alpha=0.5)
+        
+        # plot y ions
+        plot_indices = np.logical_and(np.char.find(ionspred, "-") != 0, np.char.find(ionspred, "y") == 0)
+        colors = ["#377eb8" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
+        ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors)
+        # plot y NLs
+        plot_indices = np.logical_and(np.char.find(ionspred, "-") == 0, np.char.find(ionspred, "y") == 0)
+        colors = ["#377eb8" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
+        ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors, alpha=0.5)
+        
+        # plot other terminal ions
+        ac_or = np.logical_or(np.char.find(ionspred, "a") == 0, np.char.find(ionspred, "c") == 0)
+        xz_or = np.logical_or(np.char.find(ionspred, "x") == 0, np.char.find(ionspred, "z") == 0)
+        other_term_or = np.logical_or(ac_or, xz_or)
+        plot_indices = np.logical_and(np.char.find(ionspred, "-") != 0, other_term_or)
+        colors = ["#f781bf" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
+        ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors)
+        # plot other terminal NLs
+        plot_indices = np.logical_and(np.char.find(ionspred, "-") == 0, other_term_or)
+        colors = ["#f781bf" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
+        ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors, alpha=0.5)
+        
+        # plot internal ions
+        plot_indices = np.logical_and(np.char.find(ionspred, "-") != 0, np.char.find(ionspred, "Int") == 0)
+        colors = ["#984ea3" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
+        ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors)
+        # plot internal NLs
+        plot_indices = np.logical_and(np.char.find(ionspred, "-") == 0, np.char.find(ionspred, "Int") == 0)
+        colors = ["#984ea3" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
+        ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors, alpha=0.5)
+        
+        
+        ax.set_xlim([0, ax.get_xlim()[1]])
+        ax.set_ylim([-1.1,1.1])
+        ax.set_xlim([0, max_mz_plot])
+        ax.set_xticks(np.arange(0,ax.get_xlim()[1],200))
+        ax.set_xticks(np.arange(0,ax.get_xlim()[1],50), minor=True)
+        
+        
+        
+        targ, mz, annotated = filter_by_scan_range(mz, targ, min_mz, max_mz, annotated)
+        targ_anno = targ[annotated]
+        mz_anno = mz[annotated]
+        pred, mz_pred, _ = filter_by_scan_range(mzpred, pred, min_mz, max_mz)
+
+
+
+        targ_aligned, pred_aligned, mz_aligned = match(targ_anno, mz_anno, pred, mz_pred)
+        
+        targ_aligned = norm_base_peak(targ_aligned)
+        pred_aligned = norm_base_peak(pred_aligned)
+        
+        pred_aligned[np.logical_and(pred_aligned <= LOD, targ_aligned == 0)] = 0
+        
+        cs = (pred_aligned*targ_aligned).sum() / max(np.linalg.norm(pred_aligned) * np.linalg.norm(targ_aligned), 1e-8)
+        sa = 1 - 2 * (np.arccos(cs) / np.pi)
+        
+        charge = int(charge)
+        nce = float(nce)
+        annotated_percent = 100 * np.power(targ[annotated],2).sum() / np.power(targ,2).sum()
+        ax.set_title(
+            "Seq: %s(%d); Charge: +%d; NCE: %.2f; Mod: %s; Annotated: %.2f%%; SA=%.5f"%(
+            seq, len(seq), charge, nce, mod, annotated_percent, sa)
+        )
+        
+        pl_module.logger.experiment.log({"mirroplot": wandb.Image(plt)})
+    
+
+
 
 
 ###############################################################################
 ########################## Training and testing ###############################
 ###############################################################################
 stopping_criteria = EarlyStopping(monitor="val_SA_mean", mode="max", min_delta=0.00, patience=3)
-checkpoint_callback = ModelCheckpoint(dirpath=saved_model_path, save_top_k=2, monitor="val_SA_mean", every_n_epochs=1)
+checkpoint_callback = ModelCheckpoint(dirpath=saved_model_path, save_top_k=1, monitor="val_SA_mean", mode="max", every_n_epochs=1)
+mirrorplot_callback = MirrorPlotCallback()
 
 dm = AltimeterDataModule(config, D)
 trainer = L.Trainer(default_root_dir=saved_model_path,
                     logger=wandb_logger,
-                    callbacks=[stopping_criteria, checkpoint_callback],
+                    callbacks=[stopping_criteria, checkpoint_callback, mirrorplot_callback],
                     strategy="ddp",
                     max_epochs=config['epochs'],
-                    limit_train_batches=100, 
-                    limit_val_batches=100
+                    limit_train_batches=1000, 
+                    limit_val_batches=1000
                     )
 
 
 trainer.fit(litmodel, datamodule=dm)
 trainer.test(datamodule=dm)
-trainer.validate(datamodule=dm)
-trainer.predict(datamodule=dm)
-
-
-
-
-
-
-
-
-
-
-
 
 sys.exit()
-def Testing(labels, pos, pointer, batch_size, outfile=None):
-    with torch.no_grad():
-        model.eval()
-        tot = len(labels)
-        steps = (tot//batch_size) if tot%batch_size==0 else (tot//batch_size)+1
-        model.to(device)
-        Loss = 0
-        losses = []
-        arr = torch.zeros(config['model_config']['blocks'], arrdims)
-        for m in range(steps):
-            begin = m*batch_size
-            end = (m+1)*batch_size
-            
-            if m % 1000 == 0: print("Testing", "Step:", m, "/", steps)
-            # Test set
-            targ, _, mask = L.target(pos[begin:end], fp=pointer, return_mz=False)
-            samples, info = L.input_from_str(labels[begin:end])
-            samplesgpu = [m.to(device) for m in samples]
-            maskgpu = mask.to(device)
-            
-            out,out2,FMs = model(samplesgpu)
-
-            weighted_loss, ind_losses = LossFunc(targ.to(device), out, maskgpu, info, doFullMask=False)
-            losses_list = (-ind_losses).tolist()
-            losses.extend(losses_list)
-            #losses.append(loss)
-            Loss += weighted_loss #.sum()
-            arr += torch.tensor([[n for n in m] for m in out2])
-            
-            samples_info = [n for n in 
-                          L.input_from_str(labels[begin:end])[1]
-            ]
-            
-            if outfile:
-                #targ.to('cpu').detach()
-                # loop through labels
-                for i in range(len(samples_info)):
-                    seq, mod, charge, nce, min_mz, max_mz, LOD, iso2efficiency, weight = samples_info[i]
-                    targ_int = targ[i].numpy()
-                    pred_int = out[i].cpu().numpy()
-                    pred_int /= np.max(pred_int)
-                    for j in range(D.dicsz):
-                        # parse ion name
-                        annot = annotation.from_entry(D.index2ion[j], charge)
-                        # write info, loss, individual ions
-                        outfile.writerow([seq, str(len(seq)), mod, str(charge), "{:.2f}".format(nce), "{:.3f}".format(losses_list[i]), 
-                                          # full name, type, NL string, charge
-                                          annot.getName(), annot.getType(), annot.getNLString(), annot.z, 
-                                          "{:.3f}".format(targ_int[j]), "{:.3f}".format(pred_int[j])])
-                    
-    model.to('cpu')
-    Loss = (Loss/steps).to('cpu').detach().numpy()
-    return Loss, arr.detach().numpy() / steps, np.array(losses)
-
-def Testing_np(labels, pos, pointer, batch_size):
-    with torch.no_grad():
-        model.eval()
-        tot = len(labels)
-        steps = (tot//batch_size) if tot%batch_size==0 else (tot//batch_size)+1
-        model.to(device)
-        Loss = 0
-        losses = []
-        arr = torch.zeros(config['model_config']['blocks'], arrdims)
-        for m in range(steps):
-            begin = m*batch_size
-            end = (m+1)*batch_size
-            # Test set
-            #targ, mz = L.target(pos[begin:end], fp=pointer, return_mz=True)
-            [targ, mz, annotated, mask] = L.target_plot(pos[begin], pointer)
-            samples, info = L.input_from_str(labels[begin:end])
-            (seq, mod, charge, nce, min_mz, max_mz, LOD, iso2efficiency, weight) = info[0]
-            samplesgpu = [n.to(device) for n in samples]
-            out, out2, FMs = model(samplesgpu)
-            
-            pred, mzpred, ionspred = L.ConvertToPredictedSpectrum(out.cpu().numpy()[0], info[0])
-            
-            sort_pred = mzpred.argsort() # ion dictionary index to m/z ascending order
-            sort_targ = mz.argsort()
-            
-            pred = pred[sort_pred]
-            targ = targ[sort_targ]
-            mz = mz[sort_targ]
-            mzpred = mzpred[sort_pred]
-            ionspred = ionspred[sort_pred]
-            mask = mask[sort_targ]
-            annotated = annotated[sort_targ]
-            
-            targ, mz, annotated = L.filter_by_scan_range(mz, targ, min_mz, max_mz, annotated)
-            targ_anno = targ[annotated]
-            mz_anno = mz[annotated]
-            pred, mz_pred, _ = L.filter_by_scan_range(mzpred, pred, min_mz, max_mz)
-            
-            if pred.size > 0 or mz_pred.size > 0:
-                targ_aligned, pred_aligned, _ = L.match(targ_anno, mz_anno, pred, mz_pred)
-                
-                targ_aligned = L.norm_base_peak(targ_aligned)
-                pred_aligned = L.norm_base_peak(pred_aligned)
-
-                pred_aligned[np.logical_and(pred_aligned <= LOD, targ_aligned == 0)] = 0
-                
-                targ_aligned = np.sqrt(targ_aligned)
-                pred_aligned = np.sqrt(pred_aligned)
-                
-                cs = (pred_aligned*targ_aligned).sum() / max(np.linalg.norm(pred_aligned) * np.linalg.norm(targ_aligned), 1e-8)
-                sys.stdout.write("test %.3f"%(cs) + "\n")
-                sa = 1 - 2 * (np.arccos(cs) / np.pi)
-                
-                #loss = LossFunc(targ.to(device), out)
-                Loss += -sa#loss.sum()
-                losses_list = (sa).tolist()
-                losses.extend([losses_list])
-            arr += torch.tensor([[n for n in m] for m in out2])
-    model.to('cpu')
-    Loss = (Loss/tot)#.to('cpu').detach().numpy()
-    return Loss, arr.detach().numpy() / steps, losses
 
 
 
 
-def train(epochs,
-          batch_size=100,
-          lr_decay_start = 1e10,
-          lr_decay_rate = 0.9,
-          shuffle=True, 
-          svwts=False):
-    
-    print("Starting training for %d epochs"%epochs)
-    tot = len(trlab)
-    steps = np.minimum(
-        config['steps'] if config['steps'] is not None else 1e10,
-        tot//batch_size if tot%batch_size==0 else tot//batch_size + 1
-    )
-    #steps = tot//batch_size if tot%batch_size==0 else tot//batch_size + 1
-    
-    currbest = 0
-    test_loss, _ = 0,0
-    val_loss, varr = 0,0
-    
-    # Plot initial mirrors to see the ion dictionary
-    mirrorplot(MPIND)
-    mirrorplot(MPIND2)
-    
-    # Training loop
-    for i in range(epochs):
-        start_epoch = time()
-        P = np.random.permutation(tot)
-        if i>=lr_decay_start:
-            opt.param_groups[0]['lr'] *= lr_decay_rate
-        
-        #train_loss = torch.tensor(0., device=device)
-        train_loss = torch.tensor(0., device='cpu')
-        
-        # Train an epoch
-        for j in range(steps):
-            begin = j*batch_size
-            end = (j+1)*batch_size
-            
-            samples, info = L.input_from_str(trlab[P[begin:end]])
-            targ, _, mask = L.target(fpostr[P[begin:end]], fp=ftr, return_mz=False)
-            Loss, _ = train_step(samples, targ, mask, info)
-            model.global_step += 1
-            #train_loss += Loss
-            train_loss += Loss.detach().to('cpu')
-            
-            if j % 1000 == 0: print("Epoch:", i, " Step:", j, "/", steps)
-            
-            if torch.any(torch.isnan(train_loss)):
-                print("Epoch:", i, " Step:", j, "NaN",)
-                sys.exit()
-        
-        # Testing after training epoch
-        #train_loss = train_loss.detach().to('cpu').numpy() / steps
-        train_loss = train_loss.numpy() / steps
 
-        # Val/Test loss
-        test_loss = 0
-        val_loss = 0
-        with open(os.path.join(saved_model_path,  "val_stats"), 'w') as stats_outfile:
-            #test_loss, _, _ = Testing(telab, fposte, test_point, 1)
-            #test_loss, _, losses_test = Testing_np(telab, fposte, test_point, 1)
-            test_loss, _, losses_test = Testing(telab, fposte, test_point, config['test_batch_size'])
-            #statswriter = csv.writer(stats_outfile, delimiter='\t', quoting=csv.QUOTE_NONE)
-            val_loss, varr, losses_val = Testing(vallab, fposval, val_point, config['test_batch_size'])
-            #val_loss, varr, losses_val = Testing(vallab, fposval, val_point, 1, statswriter)
-            
 
-        # Result plots
-        scoreDistPlot(-losses_val, "val", i)
-        scoreDistPlot(-losses_test, "test", i)
-        
-        mirrorplot(MPIND, epoch=i, maxnorm=True, dataset="test")
-        mirrorplot(MPIND2, epoch=i, maxnorm=True, dataset="test")
-        
-        # Results plots for worst predictions
-        #losses_test_argsorted =  [k for (v, k) in sorted((v, k) for (k, v) in enumerate(losses_test))]
-        #losses_val_argsorted =  [k for (v, k) in sorted((v, k) for (k, v) in enumerate(losses_val))]
-        #for rank in range(min(5, len(losses_test))):
-        #    print(i, rank, losses_test[losses_test_argsorted[rank]], losses_val[losses_val_argsorted[rank]])
-        #    mirrorplot(losses_test_argsorted[rank], epoch=i, maxnorm=True, rank=rank, dataset="test")
-        #    mirrorplot(losses_val_argsorted[rank], epoch=i, maxnorm=True, rank=rank, dataset="val")
-        
-        
-        
-        # Save checkpoint
-        if svwts=='top':
-            if -val_loss>currbest:
-                currbest = -val_loss
-                torch.save(model.state_dict(), os.path.join(saved_model_path, "ckpt_step%d_%.4f"%(model.global_step,-val_loss)))      
-        elif (svwts=='all') | (svwts=='True'):
-            torch.save(model.state_dict(), os.path.join(saved_model_path, "ckpt_step%d_%.4f"%(model.global_step,-val_loss)))
-        torch.save(opt.state_dict(), os.path.join(saved_model_path, "opt.sd"))
-        
-        # Print out results
-        string = ("Epoch %d; Train loss: %.4f; Val loss: %6.4f; Test loss: %6.4f; %.1f s"%(i, train_loss, -val_loss, -test_loss, time()-start_epoch))
-        sys.stdout.write("\r"+string+"\n")
-        
-        wandb.log({"train": {"loss": train_loss, "Mean Spectral Angle" : -train_loss}, 
-                  "val": {"loss": -val_loss, "loss_median": np.median(-losses_val), "Mean Spectral Angle" : -val_loss, "Median Spectral Angle" : np.median(-losses_val)}, 
-                  "test": {"loss": -test_loss, "Mean Spectral Angle" : -test_loss},
-                  "epoch": i
-                  })
-        
-        #wandb.log({"train": {"loss": train_loss, "Mean Spectral Angle" : SpectralAngle(-train_loss)}, 
-        #          "val": {"loss": -val_loss, "loss_median": np.median(-losses_val), "Mean Spectral Angle" : SpectralAngle(-val_loss), "Median Spectral Angle" : SpectralAngle(np.median(-losses_val))}, 
-        #          "test": {"loss": -test_loss, "Mean Spectral Angle" : SpectralAngle(-test_loss)},
-        #          "epoch": i
-        #          })
-        
-        #sys.exit()
-        
-    model.to("cpu")
+
+
+
+
 
 def scoreDistPlot(losses, dataset, epoch=0):
     fig, ax = plt.subplots()
     ax.hist(losses, 30, histtype='bar', color='blue') #density=True,
-    wandb.log({"cs_dist_plot_" + dataset: wandb.Image(plt),
+    wandb_logger.log({"cs_dist_plot_" + dataset: wandb.Image(plt),
                "epoch": epoch})
     plt.close()
 
-def mirrorplot(iloc=0, epoch=0, maxnorm=True, save=True, rank=-1, dataset="test"):
-    plt.close('all')
-    model.eval()
-    model.to("cpu")
-    
-    if dataset=="test": 
-        sample, info = L.input_from_str(telab[iloc:iloc+1])
-        [targ, mz, annotated, mask] = L.target_plot(fposte[iloc], test_point)
-    else: # assume validation
-        sample, info = L.input_from_str(vallab[iloc:iloc+1])
-        [targ, mz, annotated, mask] = L.target_plot(fposval[iloc], val_point)
-    
-    (seq, mod, charge, nce, min_mz, max_mz, LOD, iso2efficiency, weight) = info[0]
-    
-    with torch.no_grad():
-        pred = model(sample)[0].squeeze().detach().numpy()
-    pred, mzpred, ionspred = L.ConvertToPredictedSpectrum(pred, info[0], doIso = False)#(dataset=="test"))
-    
-    if maxnorm: pred /= pred.max()
-    if maxnorm: targ /= targ.max()
-    
-    sort_pred = mzpred.argsort() # ion dictionary index to m/z ascending order
-    sort_targ = mz.argsort()
-    
-    
-    pred = pred[sort_pred]
-    targ = targ[sort_targ]
-    mz = mz[sort_targ]
-    mzpred = mzpred[sort_pred]
-    ionspred = ionspred[sort_pred]
-    mask = mask[sort_targ]
-    annotated = annotated[sort_targ]
-    
-    plt.close('all')
-    fig,ax = plt.subplots()
-    fig.set_figwidth(15)
-    ax.set_xlabel("m/z")
-    ax.set_ylabel("Intensity")
-    
-    if np.max(pred) > 0:
-        max_mz_plot = max(np.max(mz), np.max(mzpred[pred > 0]))+10
-    else:
-        max_mz_plot = np.max(mz) + 10
-    
-    rect_lower = plt.Rectangle((0, -1), min_mz, 2, facecolor="#EEEEEE")
-    rect_upper = plt.Rectangle((max_mz, -1), max_mz_plot, 2, facecolor="#EEEEEE")
-    
-    ax.add_patch(rect_lower)
-    ax.add_patch(rect_upper)
-    
-    # plot annotated target peaks
-    linestyles = ["solid" if m == 0 else (0, (1, 1)) for m in mask[annotated]]
-    ax.vlines(mz[annotated], ymin=0, ymax=targ[annotated], linewidth=1, color='#111111', linestyle=linestyles)
-    # plot unannotated target peaks
-    ax.vlines(mz[annotated == False], ymin=0, ymax=targ[annotated == False], linewidth=1, color='#BBBBBB')
-    
-    
-    
-    # plot immonium
-    plot_indices = np.logical_and(np.char.find(ionspred, "Int") != 0, np.char.find(ionspred, "I") == 0)
-    colors = ["#ff7f00" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
-    ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors)
-    
-    # plot precursor
-    plot_indices = np.logical_and(np.char.find(ionspred, "-") != 0, np.char.find(ionspred, "p") == 0)
-    colors = ["#a65628" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
-    ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors)
-    # plot precursor NLs
-    plot_indices = np.logical_and(np.char.find(ionspred, "-") == 0, np.char.find(ionspred, "p") == 0)
-    colors = ["#a65628" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
-    ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors, alpha=0.5)
-    
-    # plot b ions
-    plot_indices = np.logical_and(np.char.find(ionspred, "-") != 0, np.char.find(ionspred, "b") == 0)
-    colors = ["#e41a1c" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
-    ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors)
-    # plot b NLs
-    plot_indices = np.logical_and(np.char.find(ionspred, "-") == 0, np.char.find(ionspred, "b") == 0)
-    colors = ["#e41a1c" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
-    ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors, alpha=0.5)
-    
-    # plot y ions
-    plot_indices = np.logical_and(np.char.find(ionspred, "-") != 0, np.char.find(ionspred, "y") == 0)
-    colors = ["#377eb8" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
-    ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors)
-    # plot y NLs
-    plot_indices = np.logical_and(np.char.find(ionspred, "-") == 0, np.char.find(ionspred, "y") == 0)
-    colors = ["#377eb8" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
-    ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors, alpha=0.5)
-    
-    # plot other terminal ions
-    ac_or = np.logical_or(np.char.find(ionspred, "a") == 0, np.char.find(ionspred, "c") == 0)
-    xz_or = np.logical_or(np.char.find(ionspred, "x") == 0, np.char.find(ionspred, "z") == 0)
-    other_term_or = np.logical_or(ac_or, xz_or)
-    plot_indices = np.logical_and(np.char.find(ionspred, "-") != 0, other_term_or)
-    colors = ["#f781bf" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
-    ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors)
-    # plot other terminal NLs
-    plot_indices = np.logical_and(np.char.find(ionspred, "-") == 0, other_term_or)
-    colors = ["#f781bf" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
-    ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors, alpha=0.5)
-    
-    # plot internal ions
-    plot_indices = np.logical_and(np.char.find(ionspred, "-") != 0, np.char.find(ionspred, "Int") == 0)
-    colors = ["#984ea3" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
-    ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors)
-    # plot internal NLs
-    plot_indices = np.logical_and(np.char.find(ionspred, "-") == 0, np.char.find(ionspred, "Int") == 0)
-    colors = ["#984ea3" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
-    ax.vlines(mzpred[plot_indices], ymin=-pred[plot_indices], ymax=0, linewidth=1, color=colors, alpha=0.5)
-    
-    
-    ax.set_xlim([0, ax.get_xlim()[1]])
-    ax.set_ylim([-1.1,1.1])
-    ax.set_xlim([0, max_mz_plot])
-    ax.set_xticks(np.arange(0,ax.get_xlim()[1],200))
-    ax.set_xticks(np.arange(0,ax.get_xlim()[1],50), minor=True)
-    
-    
-    
-    targ, mz, annotated = L.filter_by_scan_range(mz, targ, min_mz, max_mz, annotated)
-    targ_anno = targ[annotated]
-    mz_anno = mz[annotated]
-    pred, mz_pred, _ = L.filter_by_scan_range(mzpred, pred, min_mz, max_mz)
-
-
-
-    targ_aligned, pred_aligned, mz_aligned = L.match(targ_anno, mz_anno, pred, mz_pred)
-    
-    targ_aligned = L.norm_base_peak(targ_aligned)
-    pred_aligned = L.norm_base_peak(pred_aligned)
-    
-    pred_aligned[np.logical_and(pred_aligned <= LOD, targ_aligned == 0)] = 0
-    
-    #targ_aligned = np.sqrt(targ_aligned)
-    #pred_aligned = np.sqrt(pred_aligned)
-    
-    cs = (pred_aligned*targ_aligned).sum() / max(np.linalg.norm(pred_aligned) * np.linalg.norm(targ_aligned), 1e-8)
-    #sys.stdout.write("%.3f"%(cs))
-    #sys.stdout.write("\n")
-    sa = 1 - 2 * (np.arccos(cs) / np.pi)
-    mae  = abs(pred_aligned[pred_aligned>0.05]-targ_aligned[pred_aligned>0.05]).mean()
-    norm_pred = L.norm_sum_one(pred_aligned)
-    norm_targ = L.norm_sum_one(targ_aligned)
-    scribe = -np.log(np.sum(np.power(norm_pred - norm_targ, 2)))
-    
-    charge = int(charge)
-    nce = float(nce)
-    iso = str(min(iso2efficiency))+"-"+str(max(iso2efficiency))
-    annotated_percent = 100 * np.power(targ[annotated],2).sum() / np.power(targ,2).sum()
-    ax.set_title(
-        "Seq: %s(%d); Charge: +%d; NCE: %.2f; Mod: %s; Iso: %s; Annotated: %.1f%%; SA=%.3f; MAE: %.4f; Scribe: %.4f"%(
-        seq, len(seq), charge, nce, mod, iso, annotated_percent, sa, mae, scribe)
-    )
-    
-    if rank == -1: rank = iloc
-
-    
-        
-    wandb.log({"mirroplot_%s_%d"%(dataset,rank): wandb.Image(plt),
-            "epoch": epoch})
-    
-train(
-      config['epochs'], 
-      batch_size=config['batch_size'], 
-      lr_decay_start=config['lr_decay_start'], 
-      lr_decay_rate=config['lr_decay_rate'], 
-      svwts=config['svwts']
-)
