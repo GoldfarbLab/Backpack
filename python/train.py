@@ -1,22 +1,23 @@
 import sys
 import numpy as np
 import os
-#os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import yaml
 from time import time
 import utils_unispec
 import csv
 import torch
 import wandb
-from altimeter_dataset import AltimeterDataset
+from altimeter_dataset import AltimeterDataset, AltimeterDataModule
 from models import FlipyFlopy
 from lightning_model import LitFlipyFlopy
+from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+from lightning.pytorch.callbacks import ModelCheckpoint
+import lightning as L
 from annotation import annotation
 import matplotlib.pyplot as plt
 plt.close('all')
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-wandb.require("core")
-
+torch.set_float32_matmul_precision('medium')
 
 ###############################################################################
 ############################### Configuration #################################
@@ -37,7 +38,7 @@ if config['config'] is not None:
     with open(config['config'], 'r') as stream:
         model_config = yaml.safe_load(stream)
 else:
-    channels = D.seq_channels if config['model_config']['CEembed'] else D.channels
+    channels = D.seq_channels
     model_config = {
         'in_ch': channels,
         'seq_len': D.seq_len,
@@ -49,45 +50,7 @@ else:
 ############################ Weights and Biases ###############################
 ###############################################################################
 
-wandb.login()
-
-# start a new wandb run to track this script
-wandb.init(
-    # set the wandb project where this run will be logged
-    project="Altimeter",
-    # track hyperparameters and run metadata
-    config = config
-)
-
-# define a metrics
-wandb.define_metric("val.loss", summary="max")
-wandb.define_metric("test.loss", summary="max")
-
-
-###############################################################################
-################################ Dataset ######################################
-###############################################################################
-
-from utils_unispec import LoadObj
-L = LoadObj(D, embed=model_config['CEembed'])
-
-# Training
-pos_path_tr = os.path.join(config['base_path'], config['position_path'], "fpostrain.txt")
-data_path_tr = os.path.join(config['base_path'], config['dataset_path'], "train.txt")
-lab_path_tr = os.path.join(config['base_path'], config['label_path'], "train_labels.txt")
-dataset_train = AltimeterDataset(pos_path_tr, lab_path_tr, data_path_tr)
-
-# validation
-pos_path_val = os.path.join(config['base_path'], config['position_path'], "fposval.txt")
-data_path_val = os.path.join(config['base_path'], config['dataset_path'], "val.txt")
-lab_path_val = os.path.join(config['base_path'], config['label_path'], "val_labels.txt")
-dataset_val = AltimeterDataset(pos_path_val, lab_path_val, data_path_val)
-
-# testing
-pos_path_test = os.path.join(config['base_path'], config['position_path'], "fpostest.txt")
-data_path_test = os.path.join(config['base_path'], config['dataset_path'], "test.txt")
-lab_path_test = os.path.join(config['base_path'], config['label_path'], "test_labels.txt")
-dataset_test = AltimeterDataset(pos_path_test, lab_path_test, data_path_test)
+wandb_logger = WandbLogger(project="Altimeter", config = config, log_model="all")
 
 
 ###############################################################################
@@ -95,8 +58,7 @@ dataset_test = AltimeterDataset(pos_path_test, lab_path_test, data_path_test)
 ###############################################################################
 
 # Instantiate model
-litmodel = LitFlipyFlopy(FlipyFlopy(**model_config))
-arrdims = len(litmodel.model(L.input_from_str(trlab[0:1])[0], test=True)[1][0])
+litmodel = LitFlipyFlopy(FlipyFlopy(**model_config), config)
 
 
 # Load weights
@@ -136,8 +98,37 @@ def SpectralAngle(cs, eps=1e-5):
 ###############################################################################
 ########################## Training and testing ###############################
 ###############################################################################
+stopping_criteria = EarlyStopping(monitor="val_SA_mean", mode="max", min_delta=0.00, patience=3)
+checkpoint_callback = ModelCheckpoint(dirpath=saved_model_path, save_top_k=2, monitor="val_SA_mean", every_n_epochs=1)
+
+dm = AltimeterDataModule(config, D)
+trainer = L.Trainer(default_root_dir=saved_model_path,
+                    logger=wandb_logger,
+                    callbacks=[stopping_criteria, checkpoint_callback],
+                    strategy="ddp",
+                    max_epochs=config['epochs'],
+                    limit_train_batches=100, 
+                    limit_val_batches=100
+                    )
 
 
+trainer.fit(litmodel, datamodule=dm)
+trainer.test(datamodule=dm)
+trainer.validate(datamodule=dm)
+trainer.predict(datamodule=dm)
+
+
+
+
+
+
+
+
+
+
+
+
+sys.exit()
 def Testing(labels, pos, pointer, batch_size, outfile=None):
     with torch.no_grad():
         model.eval()
