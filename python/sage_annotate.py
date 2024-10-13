@@ -132,15 +132,15 @@ with open(os.path.join(args.out_path, Path(os.path.basename(args.raw_path)).reso
         peptide = utils.pepFromSage(row["peptide"])
         scan_metaData = raw_utils.getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, args.ppm_tol)
         
-        if scan_metaData is None: continue
-        if scan_metaData.reactionType != args.reaction:  continue
-        if scan_metaData.analyzer != args.analyzer:  continue
-        if scan_metaData.z < args.min_z or scan_metaData.z > args.max_z: continue
-        if scan_metaData.z != int(row["charge"]): continue 
-        if scan_metaData.purity < args.min_purity: continue
-        if scan_metaData.isoFit < args.min_iso_cs: continue
-        if scan_metaData.isoTargInt < args.min_iso_target_int: continue
-        if scan_metaData.polarity != args.polarity: continue
+        if scan_metaData is None: print(scan_id, "no meta data"); continue
+        if scan_metaData.reactionType != args.reaction: print(scan_id, "wrong reaction"); continue
+        if scan_metaData.analyzer != args.analyzer: print(scan_id, "wrong analyzer", scan_metaData.analyzer); continue
+        if scan_metaData.z < args.min_z or scan_metaData.z > args.max_z: print(scan_id, "wrong charge"); continue
+        if scan_metaData.z != int(row["charge"]): print(scan_id, "different charge"); continue 
+        if scan_metaData.purity < args.min_purity: print(scan_id, "unpure", scan_metaData.purity); continue
+        if scan_metaData.isoFit < args.min_iso_cs: print(scan_id, "bad iso fit"); continue
+        if scan_metaData.isoTargInt < args.min_iso_target_int: print(scan_id, "bad iso target"); continue
+        if scan_metaData.polarity != args.polarity: print(scan_id, "wrong polarity"); continue
         #if scan_metaData.fillTime >= 22: continue
         #if scan_metaData.rawOvFtT < 200000: continue
         
@@ -150,6 +150,7 @@ with open(os.path.join(args.out_path, Path(os.path.basename(args.raw_path)).reso
             num_decoy+=1
             continue
         
+        print("IDed", scan_id)
         
         spectrum = oms.MSSpectrum()
         centroidStream = rawFile.GetCentroidStream(scan_id, False)

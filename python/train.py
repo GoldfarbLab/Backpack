@@ -154,8 +154,8 @@ def LossFunc(targ, pred, mask, info, root=config['root_int'], doFullMask=True, e
     weights = [s[8] for s in info]
     weights = torch.FloatTensor(weights).to(device)
 
-    #pred /= torch.max(pred, dim=1, keepdim=True)[0]
-    pred /= torch.sum(pred, dim=1, keepdim=True)[0]
+    pred /= torch.max(pred, dim=1, keepdim=True)[0]
+    #pred /= torch.sum(pred, dim=1, keepdim=True)[0]
     targ, pred = L.apply_mask(targ, pred, mask, LOD, doFullMask)
     
     targ = L.root_intensity(targ, root=root) if root is not None else targ

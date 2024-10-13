@@ -1,0 +1,18 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(quay.io/biocontainers/thermorawfileparser:1.4.4--ha8f3691_0)'
+#BSUB -J raw_convert
+#BSUB -q general
+#BSUB -R 'rusage[mem=8GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 300
+#BSUB -M 8GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/raw_convert.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/raw_convert.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+# Make output directory
+mkdir -p ${RESULTS_PATH}/mzML/
+
+ThermoRawFileParser.sh -i ${DATA_PATH} -o ${RESULTS_PATH}/mzML/

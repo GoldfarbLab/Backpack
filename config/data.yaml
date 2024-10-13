@@ -52,7 +52,7 @@ model_config:
    CEembed: True
    learn_ffn_embed: False
 
-root_int: 2
+root_int:
 lr: 2e-4
 epochs: 33
 steps: 1000000

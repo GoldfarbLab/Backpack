@@ -48,9 +48,9 @@ function get_jobid {
 #echo Submitted merge_xv job with ID: $jid_merge
 
 # submit create AI data job
-jid_ai=$(get_jobid bsub < /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/Part1/01625b_GA1-TUM_first_pool_1_01_01-2xIT_2xHCD-1h-R1/scripts/create_aidata.bsub)
-echo Submitted ai data job with ID: $jid_ai
+#jid_ai=$(get_jobid bsub < /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/Part1/01625b_GA1-TUM_first_pool_1_01_01-2xIT_2xHCD-1h-R1/scripts/create_aidata.bsub)
+#echo Submitted ai data job with ID: $jid_ai
 
 # submit model training job
-#jid_train=$(get_jobid bsub < /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/Part1/01625b_GA1-TUM_first_pool_1_01_01-2xIT_2xHCD-1h-R1/scripts/train.bsub)
-#echo Submitted train job with ID: $jid_train
+jid_train=$(get_jobid bsub < /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/Part1/01625b_GA1-TUM_first_pool_1_01_01-2xIT_2xHCD-1h-R1/scripts/train.bsub)
+echo Submitted train job with ID: $jid_train

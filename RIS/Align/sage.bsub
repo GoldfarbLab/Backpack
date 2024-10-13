@@ -1,0 +1,20 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(ghcr.io/lazear/sage:latest)'
+#BSUB -J sage_pt
+#BSUB -q general
+#BSUB -R 'rusage[mem=32GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 300
+#BSUB -M 32GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/sage_pt.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/sage_pt.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+# Make output directory
+mkdir -p ${RESULTS_PATH}/sage/
+
+
+/app/sage $SAGE_CONFIG_PATH --disable-telemetry-i-dont-want-to-improve-sage -f $HUMAN_FASTA -o ${RESULTS_PATH}/sage/ ${RESULTS_PATH}/mzML/*.mzML
+#rm -r ${RESULTS_PATH}/mzML/

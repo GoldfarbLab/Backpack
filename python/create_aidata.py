@@ -54,8 +54,8 @@ def processFile(file, dataset, mask_ppm_tol=50):
 
         # normalize intensities
         #scan.normalizeToBasePeak(doLOD = (dataset=="test"))
-        #scan.normalizeToBasePeak(doLOD = True)
-        scan.normalizeToTotalAnnotated(doLOD = True)
+        scan.normalizeToBasePeak(doLOD = True)
+        #scan.normalizeToTotalAnnotated(doLOD = True)
         
         # Need to know how many extra peaks we have due to identical ambiguous annotations (otherwise for non identical we'll just take the best)
         num_peaks = 0#len(scan.annotations)
