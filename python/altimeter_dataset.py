@@ -17,6 +17,7 @@ class AltimeterDataModule(LightningDataModule):
         self.D = D
         
     def getAltimeterDataset(self, dataset):
+        dataset="train"
         pos_path = os.path.join(self.config['base_path'], self.config['position_path'], "fpos" + dataset + ".txt")
         data_path = os.path.join(self.config['base_path'], self.config['dataset_path'], dataset + ".txt")
         lab_path = os.path.join(self.config['base_path'], self.config['label_path'], dataset + "_labels.txt")
@@ -77,7 +78,6 @@ class AltimeterDataset(Dataset):
         samples, info = self.input_from_str(self.labels[idx])
         seq, mod, charge, nce, min_mz, max_mz, LOD, _, weight = info
         targ, _, mask = self.target(self.worked_id2fdata[worker_id], self.positions[idx], return_mz=False)
-        
         sample = {'samples': samples, 'targ': targ, 'mask': mask, 'seq': seq, 'mod': mod, 'charge': charge, 'nce': nce, 'min_mz': min_mz, 'max_mz': max_mz, 'LOD': LOD, 'weight': weight}
 
         if self.transform:
@@ -209,8 +209,7 @@ class AltimeterDataset(Dataset):
                 output[self.D.mdic[modtyp], int(pos)] = 1.
                 output[len(self.D.dic), int(pos)] = 0.
         
-        out = [output, float(charge), float(nce)]
-
+        out = [output, torch.tensor([float(charge)]), torch.tensor([float(nce)])]
         return out
     
     def ConvertToPredictedSpectrum(self, pred, seq, mod, charge):

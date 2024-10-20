@@ -464,6 +464,7 @@ class FlipyFlopy(nn.Module):
         if self.CEembed:
             # unpack input
             [inp, inpch, inpce] = inp
+            print(inpch)
             ch_embed = nn.functional.silu(
                 self.denseCH(self.embedCE(inpch, self.cesz, 10))
             )

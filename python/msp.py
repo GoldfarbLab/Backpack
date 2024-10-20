@@ -458,6 +458,7 @@ def read_msp_file(path):
                 mzs.append(mz)
                 intensities.append(intensity)
                 
-        if len(key2val) > 0:
-            spectrum.set_peaks([mzs, intensities])
-            yield scan(key2val["Name"], peptide, fileMetaData, metaData, spectrum, annotations=[], mask=[])
+        #if len(key2val) > 0:
+        #    print("yielding last", key2val)
+        #    spectrum.set_peaks([mzs, intensities])
+        #    yield scan(key2val["Name"], peptide, fileMetaData, metaData, spectrum, annotations=[], mask=[])

@@ -35,6 +35,7 @@ class LitFlipyFlopy(L.LightningModule):
         self.validation_step_outputs.clear()  # free memory
     
     def forward(self, x):
+        torch.set_printoptions(profile="full")
         return self.model(x)
     
     
@@ -263,9 +264,16 @@ def LossFunc(targ, pred, mask, LOD, weights, root, doFullMask=True, epsilon=1e-5
     targ = root_intensity(targ, root=root) if root is not None else targ
     pred = root_intensity(pred, root=root) if root is not None else pred
     
+    #print("targ")
+    #print(targ)
+    #print("pred")
+    #print(pred)
+    #print("\n")
+    
     cs = CS(targ, pred)
     cs = torch.clamp(cs, min=-(1-epsilon), max=(1-epsilon))
     sa = -(1 - 2 * (torch.arccos(cs) / torch.pi))
+    #print(sa, "\n")
     if torch.any(torch.isnan(sa)):
         print("nan unweighted SA")
         sys.exit()
