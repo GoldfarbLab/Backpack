@@ -16,4 +16,5 @@ source LSF_SCRIPT_PATH/config.sh
 # Make output directory
 mkdir -p ${RESULTS_PATH}/deisotope/
 
+echo ${RESULTS_PATH}/filter/${DATA_NAME}.msp
 python3.9 ${SRC_PATH}/python/deisotope.py ${RESULTS_PATH}/filter/${DATA_NAME}.msp ${RESULTS_PATH}/deisotope/

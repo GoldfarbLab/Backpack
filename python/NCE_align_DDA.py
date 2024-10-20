@@ -75,11 +75,12 @@ def rename_mods(pep, mod_string):
         for mass in mod_config["mods2"]:
             mod_string = mod_string.replace(mass, mod_config["mods2"][mass])
         mod_string = mod_string.replace("+", pep[0])
+    mod_string = mod_string.replace("UNIMOD:4", "Carbamidomethyl").replace("UNIMOD:35", "Oxidation")
     return mod_string
 
 
-min_NCE = 20
-max_NCE = 40
+min_NCE = 22
+max_NCE = 38
 NCE_step_size = 0.01
 NCE_steps = 1+int((max_NCE-min_NCE) / NCE_step_size)
 NCE_steps = np.linspace(min_NCE, max_NCE, NCE_steps)
@@ -92,6 +93,7 @@ with open(os.path.join(args.out_path, "NCE_alignment.tsv"), 'w', newline="", enc
     with torch.no_grad():
         for i, scan in enumerate(msp.read_msp_file(args.msp_path)):
             pep = scan.peptide.toUnmodifiedString()
+            pep = "YQNDLSNLR"
             mod_string = rename_mods(pep, scan.getModString())
             if any([mod in mod_string for mod in dconfig['peptide_criteria']['modifications_exclude']]): continue
             
@@ -101,7 +103,7 @@ with open(os.path.join(args.out_path, "NCE_alignment.tsv"), 'w', newline="", enc
             
             labels = []
             for NCE in NCE_steps:
-                label = scan.peptide.toUnmodifiedString() + "/" + str(scan.metaData.z) + "_" + mod_string + "_NCE" + "{:.2f}".format(NCE) + "_0-2000_0.001_(1)0_1" 
+                label = pep + "/" + str(scan.metaData.z) + "_" + mod_string + "_NCE" + "{:.2f}".format(NCE) + "_0-2000_0.001_(1)0_1" 
                 labels.append(label)
 
             samples, info = L.input_from_str(labels)
@@ -111,6 +113,9 @@ with open(os.path.join(args.out_path, "NCE_alignment.tsv"), 'w', newline="", enc
             pred = pred.cpu().detach()
             
             targ = targ.unsqueeze(0).expand_as(pred)
+            
+            np.savetxt('/storage1/fs1/d.goldfarb/Active/Projects/Backpack/' + pep + ".txt", pred.numpy())
+            sys.exit()
             
             SAs = LossFunc(targ, pred)
             

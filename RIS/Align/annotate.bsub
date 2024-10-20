@@ -17,4 +17,5 @@ source LSF_SCRIPT_PATH/config.sh
 mkdir -p ${RESULTS_PATH}/annotated/
 mkdir -p ${RESULTS_PATH}/dict/
 
-python3.9 ${SRC_PATH}/python/sage_annotate.py ${RESULTS_PATH}/sage/results.sage.tsv ${RESULTS_PATH}/sage/chronologer.tsv ${DATA_PATH} ${RESULTS_PATH}/annotated/ ${RESULTS_PATH}/dict/ --min_purity 0.8 --min_iso_cs 0.95 --protein_acc_include="" --min_matched_peaks 5 --analyzer ASTMS
+#python3.9 ${SRC_PATH}/python/sage_annotate.py ${RESULTS_PATH}/sage/results.sage.tsv ${RESULTS_PATH}/sage/chronologer.tsv ${DATA_PATH} ${RESULTS_PATH}/annotated/ ${RESULTS_PATH}/dict/ --min_purity 0.8 --min_iso_cs 0.95 --protein_acc_include="" --min_matched_peaks 5 --analyzer ASTMS
+python3.9 ${SRC_PATH}/python/pioneer_annotate.py /storage1/fs1/d.goldfarb/Active/RIS_Goldfarb_Lab/ASTRAL_DDA_FOR_DENNIS/EXPLORIS/exploris_psms.csv ${DATA_PATH} ${RESULTS_PATH}/annotated/ --min_purity 0.8 --min_iso_cs 0.95 --protein_acc_include="" --min_matched_peaks 5 --analyzer FTMS

@@ -47,19 +47,19 @@ else:
 ############################ Weights and Biases ###############################
 ###############################################################################
 
-wandb.login()
+#wandb.login()
 
 # start a new wandb run to track this script
-wandb.init(
+#wandb.init(
     # set the wandb project where this run will be logged
-    project="Altimeter",
+#    project="Altimeter",
     # track hyperparameters and run metadata
-    config = config
-)
+#    config = config
+#)
 
 # define a metrics
-wandb.define_metric("val.loss", summary="max")
-wandb.define_metric("test.loss", summary="max")
+#wandb.define_metric("val.loss", summary="max")
+#wandb.define_metric("test.loss", summary="max")
 
 
 ###############################################################################
@@ -92,8 +92,9 @@ for pos in fposte:
     line = test_point.readline()
     Lens_peaks.append(len(line.split()[1].split('|')[0]) + int(line.split()[1].split('|')[-1]))
     Lens.append(len(line.split()[1].split('|')[0]))
-MPIND = 365 #np.argmax(Lens) #1601 #np.argmax(Lens)
-MPIND2 = np.argmax(Lens_peaks)
+MPIND = 3650 #np.argmax(Lens) #1601 #np.argmax(Lens)
+MPIND2 = 40000 #np.argmax(Lens_peaks)
+MPIND3 = 100000 #np.argmax(Lens_peaks)
 
 ###############################################################################
 ################################## Model ######################################
@@ -242,21 +243,23 @@ def Testing(labels, pos, pointer, batch_size, outfile=None):
             ]
             
             if outfile:
+                for i in range(len(samples_info)):
+                    outfile.write("{:.4f}".format(losses_list[i]) +"\n")
                 #targ.to('cpu').detach()
                 # loop through labels
-                for i in range(len(samples_info)):
-                    seq, mod, charge, nce, min_mz, max_mz, LOD, iso2efficiency, weight = samples_info[i]
-                    targ_int = targ[i].numpy()
-                    pred_int = out[i].cpu().numpy()
-                    pred_int /= np.max(pred_int)
-                    for j in range(D.dicsz):
-                        # parse ion name
-                        annot = annotation.from_entry(D.index2ion[j], charge)
-                        # write info, loss, individual ions
-                        outfile.writerow([seq, str(len(seq)), mod, str(charge), "{:.2f}".format(nce), "{:.3f}".format(losses_list[i]), 
-                                          # full name, type, NL string, charge
-                                          annot.getName(), annot.getType(), annot.getNLString(), annot.z, 
-                                          "{:.3f}".format(targ_int[j]), "{:.3f}".format(pred_int[j])])
+                #for i in range(len(samples_info)):
+                #    seq, mod, charge, nce, min_mz, max_mz, LOD, iso2efficiency, weight = samples_info[i]
+                #    targ_int = targ[i].numpy()
+                #    pred_int = out[i].cpu().numpy()
+                #    pred_int /= np.max(pred_int)
+                #    for j in range(D.dicsz):
+                #        # parse ion name
+                #        annot = annotation.from_entry(D.index2ion[j], charge)
+                #        # write info, loss, individual ions
+                #        outfile.writerow([seq, str(len(seq)), mod, str(charge), "{:.2f}".format(nce), "{:.3f}".format(losses_list[i]), 
+                #                          # full name, type, NL string, charge
+                #                          annot.getName(), annot.getType(), annot.getNLString(), annot.z, 
+                #                          "{:.3f}".format(targ_int[j]), "{:.3f}".format(pred_int[j])])
                     
     model.to('cpu')
     Loss = (Loss/steps).to('cpu').detach().numpy()
@@ -349,10 +352,9 @@ def train(epochs,
     # Plot initial mirrors to see the ion dictionary
     mirrorplot(MPIND)
     mirrorplot(MPIND2)
-    
     # Training loop
     for i in range(epochs):
-        start_epoch = time()
+        """start_epoch = time()
         P = np.random.permutation(tot)
         if i>=lr_decay_start:
             opt.param_groups[0]['lr'] *= lr_decay_rate
@@ -360,7 +362,7 @@ def train(epochs,
         #train_loss = torch.tensor(0., device=device)
         train_loss = torch.tensor(0., device='cpu')
         
-        # Train an epoch
+         # Train an epoch
         for j in range(steps):
             begin = j*batch_size
             end = (j+1)*batch_size
@@ -380,26 +382,33 @@ def train(epochs,
         
         # Testing after training epoch
         #train_loss = train_loss.detach().to('cpu').numpy() / steps
-        train_loss = train_loss.numpy() / steps
+        train_loss = train_loss.numpy() / steps """
 
         # Val/Test loss
         test_loss = 0
         val_loss = 0
-        with open(os.path.join(saved_model_path,  "val_stats"), 'w') as stats_outfile:
+        with open(os.path.join(saved_model_path,  "val_stats2"), 'w') as stats_outfile:
+            val_loss, varr, losses_val = Testing(vallab, fposval, val_point, config['test_batch_size'], stats_outfile)
+            
+        with open(os.path.join(saved_model_path,  "test_stats2"), 'w') as stats_outfile:
+            test_loss, _, losses_test = Testing(telab, fposte, test_point, config['test_batch_size'], stats_outfile)
             #test_loss, _, _ = Testing(telab, fposte, test_point, 1)
             #test_loss, _, losses_test = Testing_np(telab, fposte, test_point, 1)
-            test_loss, _, losses_test = Testing(telab, fposte, test_point, config['test_batch_size'])
+            
             #statswriter = csv.writer(stats_outfile, delimiter='\t', quoting=csv.QUOTE_NONE)
-            val_loss, varr, losses_val = Testing(vallab, fposval, val_point, config['test_batch_size'])
+           
             #val_loss, varr, losses_val = Testing(vallab, fposval, val_point, 1, statswriter)
             
 
         # Result plots
-        scoreDistPlot(-losses_val, "val", i)
-        scoreDistPlot(-losses_test, "test", i)
+        #scoreDistPlot(-losses_val, "val", i)
+        #scoreDistPlot(-losses_test, "test", i)
         
         mirrorplot(MPIND, epoch=i, maxnorm=True, dataset="test")
         mirrorplot(MPIND2, epoch=i, maxnorm=True, dataset="test")
+        mirrorplot(MPIND3, epoch=i, maxnorm=True, dataset="test")
+        
+        sys.exit()
         
         # Results plots for worst predictions
         #losses_test_argsorted =  [k for (v, k) in sorted((v, k) for (k, v) in enumerate(losses_test))]
@@ -412,23 +421,23 @@ def train(epochs,
         
         
         # Save checkpoint
-        if svwts=='top':
-            if -val_loss>currbest:
-                currbest = -val_loss
-                torch.save(model.state_dict(), os.path.join(saved_model_path, "ckpt_step%d_%.4f"%(model.global_step,-val_loss)))      
-        elif (svwts=='all') | (svwts=='True'):
-            torch.save(model.state_dict(), os.path.join(saved_model_path, "ckpt_step%d_%.4f"%(model.global_step,-val_loss)))
-        torch.save(opt.state_dict(), os.path.join(saved_model_path, "opt.sd"))
+        #if svwts=='top':
+        #    if -val_loss>currbest:
+        #        currbest = -val_loss
+        #        torch.save(model.state_dict(), os.path.join(saved_model_path, "ckpt_step%d_%.4f"%(model.global_step,-val_loss)))      
+        #elif (svwts=='all') | (svwts=='True'):
+        #    torch.save(model.state_dict(), os.path.join(saved_model_path, "ckpt_step%d_%.4f"%(model.global_step,-val_loss)))
+        #torch.save(opt.state_dict(), os.path.join(saved_model_path, "opt.sd"))
         
         # Print out results
-        string = ("Epoch %d; Train loss: %.4f; Val loss: %6.4f; Test loss: %6.4f; %.1f s"%(i, train_loss, -val_loss, -test_loss, time()-start_epoch))
-        sys.stdout.write("\r"+string+"\n")
+        #string = ("Epoch %d; Train loss: %.4f; Val loss: %6.4f; Test loss: %6.4f; %.1f s"%(i, train_loss, -val_loss, -test_loss, time()-start_epoch))
+        #sys.stdout.write("\r"+string+"\n")
         
-        wandb.log({"train": {"loss": train_loss, "Mean Spectral Angle" : -train_loss}, 
-                  "val": {"loss": -val_loss, "loss_median": np.median(-losses_val), "Mean Spectral Angle" : -val_loss, "Median Spectral Angle" : np.median(-losses_val)}, 
-                  "test": {"loss": -test_loss, "Mean Spectral Angle" : -test_loss},
-                  "epoch": i
-                  })
+        #wandb.log({#"train": {"loss": train_loss, "Mean Spectral Angle" : -train_loss}, 
+        #          "val": {"loss": -val_loss, "loss_median": np.median(-losses_val), "Mean Spectral Angle" : -val_loss, "Median Spectral Angle" : np.median(-losses_val)}, 
+        #          "test": {"loss": -test_loss, "Mean Spectral Angle" : -test_loss},
+        #          "epoch": i
+        #          })
         
         #wandb.log({"train": {"loss": train_loss, "Mean Spectral Angle" : SpectralAngle(-train_loss)}, 
         #          "val": {"loss": -val_loss, "loss_median": np.median(-losses_val), "Mean Spectral Angle" : SpectralAngle(-val_loss), "Median Spectral Angle" : SpectralAngle(np.median(-losses_val))}, 
@@ -605,9 +614,9 @@ def mirrorplot(iloc=0, epoch=0, maxnorm=True, save=True, rank=-1, dataset="test"
     if rank == -1: rank = iloc
 
     
-        
-    wandb.log({"mirroplot_%s_%d"%(dataset,rank): wandb.Image(plt),
-            "epoch": epoch})
+    plt.savefig(os.path.join(saved_model_path, 'mirroplot_' + str(iloc) + ".pdf"))
+    #wandb.log({"mirroplot_%s_%d"%(dataset,rank): wandb.Image(plt),
+    #        "epoch": epoch})
     
 train(
       config['epochs'], 

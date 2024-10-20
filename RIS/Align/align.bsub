@@ -4,16 +4,16 @@
 #BSUB -a 'docker(dennisgoldfarb/pytorch_ris:pyopenms)'
 #BSUB -J align
 #BSUB -q general
-#BSUB -R 'gpuhost rusage[mem=40GB]'
-#BSUB -gpu 'num=1:gmem=30G:gmodel=TeslaV100_SXM2_32GB'
+#BSUB -R 'gpuhost rusage[mem=12GB]'
+#BSUB -gpu 'num=1:gmem=30G:gmodel=NVIDIAA100_SXM4_80GB'
 #BSUB -W 20000
-#BSUB -M 40G
-#BSUB -o /storage1/fs1/d.goldfarb/Active/Projects/Backpack/align.%J.out.txt
-#BSUB -e /storage1/fs1/d.goldfarb/Active/Projects/Backpack/align.%J.err.txt
+#BSUB -M 12G
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/align.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/align.%J.err.txt
 
 source LSF_SCRIPT_PATH/config.sh
 
 # Make output directory
 mkdir -p ${RESULTS_PATH}/NCE/
 
-/bin/python3 ${SRC_PATH}/python/NCE_align_DDA.py ${RESULTS_PATH}/deisotope/20230320_OLEP08_1000ngHeK_uPAC_180k-30min_MontBlanc_2Th_0p5_Cycle_01.msp.deisotoped /storage1/fs1/d.goldfarb/Active/Projects/Backpack/ #${RESULTS_PATH}/NCE/
+/bin/python3 ${SRC_PATH}/python/NCE_align_DDA.py ${RESULTS_PATH}/deisotope/20220909_EXPL8_Evo5_ZY_MixedSpecies_500ng_E5H50Y45_30SPD_DIA_1.msp.deisotoped /storage1/fs1/d.goldfarb/Active/Projects/Backpack/ #${RESULTS_PATH}/NCE/

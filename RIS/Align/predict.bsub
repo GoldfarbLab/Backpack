@@ -1,0 +1,16 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/pytorch_ris:pyopenms)'
+#BSUB -J predict[2-10]
+#BSUB -q general
+#BSUB -R 'gpuhost rusage[mem=12GB]'
+#BSUB -gpu 'num=1:gmem=30G:gmodel=TeslaV100_SXM2_32GB'
+#BSUB -W 6000
+#BSUB -M 12G
+
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/predict.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/predict.%J.err.txt
+
+#/opt/conda/bin/python
+/bin/python3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/predict.py $LSB_JOBINDEX 10

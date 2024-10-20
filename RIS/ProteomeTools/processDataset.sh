@@ -7,7 +7,7 @@ function get_jobid {
 }
 
 # submit pipeline1 on each dataset (convert, sage, chronologer, annotate)
-#./processFolder.sh Part1 ../../config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/ pipeline
+./processFolder.sh Part1 ../../config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/ pipeline
 #./processFolder.sh Part2 ../../config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part2/ pipeline
 #./processFolder.sh Part3 ../../config/closed_config_aspn.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/aspn/ pipeline
 #./processFolder.sh Part3 ../../config/closed_config_lysn.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/lysn/ pipeline

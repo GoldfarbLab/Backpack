@@ -40,7 +40,7 @@ def getFileMetaData(rawFile):
     return RawFileMetaData(key2val)
 
 
-def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol):
+def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol, pep_z=None):
     key2val = dict()
     
     reaction = scanEvent.GetReaction(0)
@@ -94,8 +94,10 @@ def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol
     key2val["Scan Filter"] = filterString
     
     if float(key2val["MonoMZ"]) <= 0: 
-        key2val["MonoMZ"] = key2val["IsoCenter"]
-        key2val["z"] = str(int(float(key2val["HighMZ"]) / float(key2val["MonoMZ"])))
+        key2val["MonoMZ"] = peptide.getMZ(pep_z)
+        key2val["z"] = pep_z
+        #key2val["MonoMZ"] = key2val["IsoCenter"]
+        #key2val["z"] = str(int(float(key2val["HighMZ"]) / float(key2val["MonoMZ"])))
         
     if key2val["Analyzer"] == "ITMS": return MS2MetaData(key2val)
     

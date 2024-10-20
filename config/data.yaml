@@ -11,7 +11,7 @@ val_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/val.msp
 test_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/test.msp
 
 config:
-weights:
+weights: /scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_noRootNCEMean/saved_model/ckpt_step1191168_0.9033
 restart:
 transfer:
 
@@ -54,7 +54,8 @@ model_config:
 
 root_int:
 lr: 2e-4
-epochs: 33
+#33
+epochs: 1
 steps: 1000000
 batch_size: 100
 test_batch_size: 1000

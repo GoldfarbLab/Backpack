@@ -3,10 +3,10 @@ model_config: /scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_no
 model_ckpt: /scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_noRootNCEMean/saved_model/ckpt_step1191168_0.9033
 enable_gpu: True
 
-to_predict: /storage1/fs1/d.goldfarb/Active/RIS_Goldfarb_Lab/NTW/ASMS_2024/UNISPEC_LIBS/UNISPEC_LIBS/for_unispec/unispec_HUMAN_YEAST_ECOLI_1var_1mc_chronologer_050624.tsv
-out_file: /storage1/fs1/d.goldfarb/Active/RIS_Goldfarb_Lab/NTW/ASMS_2024/UNISPEC_LIBS/UNISPEC_LIBS/for_unispec/unispec_HUMAN_YEAST_ECOLI_1var_1mc_chronologer_050624.msp.by_exploris27_v2
+to_predict: /storage1/fs1/d.goldfarb/Active/RIS_Goldfarb_Lab/NTW/PIONEER/PIONEER_PAPER/SPEC_LIBS/AltimiterOct13Version/Altimeter101324_MixedSpecies_OlsenAstral_NoEntrapment_101324.poin/precursors_for_altimiter.csv
+out_file: /storage1/fs1/d.goldfarb/Active/Backpack/libraries/astral/Altimeter101324_MixedSpecies_OlsenAstral_NoEntrapment_101324_zCorrectedNathan/Altimeter
 
-batch_size: 100
+batch_size: 1000
 
 search_empty_pos: True
 dsets:
