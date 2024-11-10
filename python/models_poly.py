@@ -8,6 +8,8 @@ verbose=False # print out intialization statistics for various tensors.
 import torch
 from torch import nn
 import numpy as np
+from scipy.interpolate import BSpline
+import sys
 
 
 # NOTE: Target sigma
@@ -347,6 +349,7 @@ class FlipyFlopy(nn.Module):
         units = embedsz if eval(units)==None else units
         
         self.mask = mask
+        self.out_dim = out_dim
         
         self.embed = nn.Parameter(initEmb((in_ch, embedsz)), requires_grad=True)
         if pos_type=='learned':
@@ -371,9 +374,10 @@ class FlipyFlopy(nn.Module):
         if CEembed:
             self.denseCH = nn.Linear(self.cesz, self.cesz)
             self.denseCE = nn.Linear(self.cesz, self.cesz)
-            self.postcat = (nn.Identity() if learn_ffn_embed else 
-                             nn.Linear(2*self.cesz, units)
-            )
+            #self.postcat = (nn.Identity() if learn_ffn_embed else 
+            #                 nn.Linear(2*self.cesz, units)
+            #)
+            self.postcat =  nn.Linear(self.cesz, units)
             ffnembed = 2*CEembed_units if learn_ffn_embed else units
         else:
             ffnembed = None
@@ -387,7 +391,14 @@ class FlipyFlopy(nn.Module):
         
         self.Proj = nn.Parameter(initProj((embedsz, filtlast)), requires_grad=True)
         self.ProjNorm = nn.BatchNorm1d(filtlast)
-        self.final = nn.Sequential(nn.Linear(filtlast, out_dim), nn.Sigmoid())
+        
+        #self.final = nn.Sequential(nn.Linear(filtlast, filtlast), nn.ReLU(), nn.Linear(filtlast, out_dim*4), nn.Sigmoid())
+        #self.final = nn.Sequential(nn.Linear(filtlast, out_dim*4), nn.Tanh())
+        self.final = nn.Sequential(nn.Linear(filtlast, out_dim*4), nn.Sigmoid())
+        
+        ########################
+        
+        #self.final = nn.Sequential(nn.Linear(filtlast, out_dim), nn.Sigmoid())
         initFin(self.final[0].weight)
         nn.init.zeros_(list(self.final.parameters())[1])
         
@@ -472,9 +483,10 @@ class FlipyFlopy(nn.Module):
                 self.denseCH(self.embedCE(inpch, self.cesz, 10))
             )
             ce_embed = nn.functional.silu(
-                self.denseCE(self.embedCE(inpce, self.cesz, 1000))
+                self.denseCE(self.embedCE(inpce, self.cesz, 100))
             )   
-            embed = self.postcat(torch.cat([ch_embed,ce_embed],-1))
+            #embed = self.postcat(torch.cat([ch_embed,ce_embed],-1))
+            embed = self.postcat(torch.cat([ch_embed],-1))
         else:
             inp = inp[0]
             embed = None
@@ -496,6 +508,55 @@ class FlipyFlopy(nn.Module):
                 lst.append(out2)
                 lst2.append(FM)
         out = torch.relu(self.ProjNorm(torch.einsum('abc,bd->adc', out, self.Proj))) # bs, filtlast, seq_len
-        #lst.append(out)
-        return self.final(out.transpose(-1,-2)).mean(dim=1)#, lst, lst2
 
+        inpce = inpce.unsqueeze(1).repeat(1, self.out_dim)
+        # create knots
+        #knots = torch.linspace(15,55,9, device=torch.device('cuda')).unsqueeze(0).unsqueeze(2).repeat(inp.shape[0], 1, self.out_dim)
+        #knots = torch.linspace(15-(60/8), 45+(60/8), 9, device=torch.device('cuda')).unsqueeze(0).unsqueeze(2).repeat(inp.shape[0], 1, self.out_dim) # [15-(60/8), 45+(60/8)
+        #knots = torch.linspace(15-(60/7), 45+(60/7), 8, device=torch.device('cuda')).unsqueeze(0).unsqueeze(2).repeat(inp.shape[0], 1, self.out_dim)
+        knots = torch.tensor([6, 13, 20, 27, 34, 41, 48, 55], device=torch.device('cuda')).unsqueeze(0).unsqueeze(2).repeat(inp.shape[0], 1, self.out_dim)
+        # get b-spline coefficients
+        poly_coef = torch.reshape(self.final(out.transpose(-1,-2)).mean(dim=1), (inp.shape[0], 4, self.out_dim))
+
+        out = bspline(inpce, knots, poly_coef, 3)
+        #min_vals = getMin(inpce, knots, poly_coef, 3)
+        #out -= min_vals
+        #out = torch.where(out > 0, out, 0.0)
+        
+        return out
+
+
+
+# x = NCEs
+# k = polynomial degree
+# i = basis-spline index
+# t = knots
+def B(x, k, i, t):
+    out = torch.zeros_like(x)
+    if k == 0:
+        out = torch.where(torch.logical_and(t[:,i,:].squeeze(1) <= x, x < t[:,i+1,:].squeeze(1)), 1.0, 0.0)
+        return out
+
+    c1 = (x - t[:,i,:].squeeze(1))/(t[:,i+k,:].squeeze(1) - t[:,i,:].squeeze(1)) * B(x, k-1, i, t)
+    c2 = (t[:,i+k+1,:].squeeze(1) - x)/(t[:,i+k+1,:].squeeze(1) - t[:,i+1,:].squeeze(1)) * B(x, k-1, i+1, t)
+    
+    return c1 + c2
+
+# x = NCEs
+# t = knots
+# c = coefficients
+# k = polynomial degree
+def bspline(x, t, c, k):
+    n = t.shape[1] - k - 1
+    out = torch.zeros_like(x)
+    for i in range(n):
+        out += c[:, i, :].squeeze(1) * B(x, k, i, t) 
+    return out
+
+
+def getMin(x, t, c, k):
+    min_vals = torch.zeros_like(x)
+    for xx in range(20,41):
+        x_i = torch.ones_like(x) * xx
+        min_vals = torch.min(min_vals, bspline(x_i, t, c, k))[0]
+    return min_vals

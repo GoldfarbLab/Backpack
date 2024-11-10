@@ -1,0 +1,17 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(rocker/tidyverse:latest)'
+#BSUB -J interpolate[1-1000]
+#BSUB -q general
+#BSUB -R 'rusage[mem=16GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 3000
+#BSUB -M 16GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/interpolate.%J.%I.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/interpolate.%J.%I.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+mkdir -p $SCRATCH_PATH/training/byp_imm_interp/interp_msp/
+
+Rscript ${SRC_PATH}/R/interpolate_splines.R $LSB_JOBINDEX $SCRATCH_PATH/training/byp_imm_interp/interp_tsv/ $SCRATCH_PATH/training/byp_imm_interp/interp_msp/

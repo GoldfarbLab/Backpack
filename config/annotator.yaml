@@ -3,7 +3,7 @@ min_percent: 0.02
 min_count: 100
 isotopes: True
 NLs: False
-immonium_ions: False
+immonium_ions: True
 a_ions: False
 b_ions: True
 y_ions: True

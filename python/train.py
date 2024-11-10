@@ -8,7 +8,7 @@ import csv
 import torch
 import wandb
 from altimeter_dataset import AltimeterDataModule, filter_by_scan_range, match, norm_base_peak
-from models import FlipyFlopy
+from models_poly import FlipyFlopy
 from lightning_model import LitFlipyFlopy
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
@@ -111,6 +111,67 @@ class MirrorPlotCallback(L.Callback):
             pred = pred.squeeze(0)
             pred, mzpred, ionspred = val_dataset.ConvertToPredictedSpectrum(pred.cpu().numpy(), seq, mod, charge)
             self.mirrorplot(entry, pred, mzpred, ionspred, pl_module, maxnorm=True, save=True)
+            self.checkSmoothness(trainer, pl_module, val_dataset)
+            
+    def checkSmoothness(self, trainer, pl_module, val_dataset):
+        lcs = []
+        # get first batch
+        samples = [val_dataset[i] for i in range(1)]
+        # get unique seq+mods+z
+        unique_precursors = set([sample["seq"] + "_" + sample["mod"] + "_" + str(sample["charge"]) for sample in samples])
+        # predict each at full range of NCEs
+        for sample in samples:
+            sample_id = sample["seq"] + "_" + sample["mod"] + "_" + str(sample["charge"])
+            if sample_id in unique_precursors:
+                targ = sample['targ']
+                sample = sample['samples']
+                sample[0] = sample[0].unsqueeze(0).repeat(201,1,1)
+                sample[1] = sample[1].repeat(201)
+                sample[2] = torch.linspace(20, 40, steps=201)
+                pred = trainer.model(sample)
+                pred = pred.cpu()
+                # filter for frags where targ > 0
+                pred = torch.where(targ>0, pred, 0.0)
+                non_empty_mask = pred.abs().sum(dim=0).bool()
+                pred = pred[:,non_empty_mask]
+                
+                #pred = pred - pred.min(dim=0, keepdim=True)[0]
+                #pred = pred / pred.max(dim=0, keepdim=True)[0]
+                #lcs.extend(self.getLipschitzConstant(pred))
+                self.smoothplot(pl_module, pred)
+                
+        #lcs = np.array(lcs)
+        #pl_module.logger.experiment.log({"val_lc_mean": np.mean(lcs)})
+    
+    def getLipschitzConstant(sel, pred):
+        lcs = []
+        for frag_i in range(pred.shape[1]):
+            max_slope = 0
+            for i in range(pred.shape[0]):
+                for j in range(i+1, pred.shape[0]):
+                    NCE_dist = j-i
+                    signal_dist = torch.abs(pred[i,frag_i] - pred[j,frag_i])
+                    max_slope = max(max_slope, signal_dist / NCE_dist)
+            lcs.append(max_slope)
+        return lcs
+    
+    def smoothplot(self, pl_module, pred):
+        num_frags = pred.shape[1]
+        num_cols = int(np.ceil(np.sqrt(num_frags)))
+        num_rows = num_cols
+        plt.close('all')
+        fig, axs = plt.subplots(num_rows, num_cols)
+        
+        NCEs = np.linspace(20, 40, num=201)
+        
+        for frag_i in range(pred.shape[1]):
+            col = frag_i % num_cols
+            row = int(frag_i / num_cols)
+            axs[row, col].plot(NCEs, pred[:, frag_i].numpy())
+            
+        pl_module.logger.experiment.log({"smoothplot": wandb.Image(plt)})
+        plt.close()
+        
     
     def mirrorplot(self, entry, pred, mzpred, ionspred, pl_module, maxnorm=True, save=True):
 
@@ -246,6 +307,7 @@ class MirrorPlotCallback(L.Callback):
         )
         
         pl_module.logger.experiment.log({"mirroplot": wandb.Image(plt)})
+        plt.close()
     
 
 
@@ -254,7 +316,7 @@ class MirrorPlotCallback(L.Callback):
 ###############################################################################
 ########################## Training and testing ###############################
 ###############################################################################
-stopping_criteria = EarlyStopping(monitor="val_SA_mean", mode="max", min_delta=0.00, patience=3)
+stopping_criteria = EarlyStopping(monitor="val_SA_mean", mode="max", min_delta=0.00, patience=5)
 checkpoint_callback = ModelCheckpoint(dirpath=saved_model_path, save_top_k=1, monitor="val_SA_mean", mode="max", every_n_epochs=1)
 mirrorplot_callback = MirrorPlotCallback()
 
@@ -262,32 +324,13 @@ dm = AltimeterDataModule(config, D)
 trainer = L.Trainer(default_root_dir=saved_model_path,
                     logger=wandb_logger,
                     callbacks=[stopping_criteria, checkpoint_callback, mirrorplot_callback],
-                    strategy="ddp",
+                    strategy="ddp_find_unused_parameters_true", #ddp
                     max_epochs=config['epochs'],
-                    limit_train_batches=1000, 
-                    limit_val_batches=1000
+                    #limit_train_batches=1000, 
+                    #limit_val_batches=1000
                     )
 
 
 trainer.fit(litmodel, datamodule=dm)
-trainer.test(datamodule=dm)
-
-sys.exit()
-
-
-
-
-
-
-
-
-
-
-
-def scoreDistPlot(losses, dataset, epoch=0):
-    fig, ax = plt.subplots()
-    ax.hist(losses, 30, histtype='bar', color='blue') #density=True,
-    wandb_logger.log({"cs_dist_plot_" + dataset: wandb.Image(plt),
-               "epoch": epoch})
-    plt.close()
+trainer.test(datamodule=dm, ckpt_path=None)
 

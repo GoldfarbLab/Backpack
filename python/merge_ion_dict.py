@@ -31,6 +31,7 @@ with open(dict_outpath, 'w') as outfile:
         obs, total = match2stats[frag]
         annot = annotation.annotation.from_entry(frag, 0)
 
+        #if total == 0: continue
         if obs < config['min_count'] or obs/total < config['min_percent']: continue
         if annot.isotope > 0 and not config['isotopes']: continue
         if (annot.NL or annot.NG) and not config['NLs']: continue

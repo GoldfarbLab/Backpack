@@ -4,13 +4,13 @@ import msp
 import random
 
 
-infile = sys.argv[1]
-headers = sys.argv[2]
-out_path = sys.argv[3]
+#infile = sys.argv[1]
+headers = sys.argv[1]
+out_path = sys.argv[2]
 
-train_outfile = open(os.path.join(out_path, "pep.train.msp"), "w")
-val_outfile = open(os.path.join(out_path, "pep.val.msp"), "w")
-test_outfile = open(os.path.join(out_path, "pep.test.msp"), "w")
+train_outfile = open(os.path.join(out_path, "pep.train2.msp"), "w")
+val_outfile = open(os.path.join(out_path, "pep.val2.msp"), "w")
+test_outfile = open(os.path.join(out_path, "pep.test2.msp"), "w")
 
 procal = set(["GIFGAFTDDYK","GFVIDDGLITK","GFLDYESTGAK","GDFTFFIDTFK","GASDFLSFAVK","FVGTEYDGLAK",
 	"FLFTGYDTSVK","FLASSEGGFTK","FGTGTYAGGEK","FFLTGTSIFVK","ASDLLSGYYIK","ALFSSITDSEK","YSAHEEHHYDK","YFGYTSDTFGK","YALDSYSLSSK","VYAETLSGFIK",

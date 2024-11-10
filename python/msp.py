@@ -20,7 +20,7 @@ with open(os.path.join(os.path.dirname(__file__), "../config/mods.yaml"), 'r') a
 def createMSPName(mod_seq, metaData):
     msp_seq = modSeqToMSP(mod_seq, metaData.z)
     NCE = metaData.key2val["NCE_aligned"] if "NCE_aligned" in metaData.key2val else metaData.NCE
-    name = "_".join([msp_seq, "NCE" + "{:.2f}".format(NCE), "{:.1f}".format(metaData.lowMz) + "-" +"{:.1f}".format(metaData.highMz), "{:.7f}".format(metaData.LOD), iso2name(metaData.iso2eff)])
+    name = "_".join([msp_seq, "NCE" + "{:.2f}".format(NCE), "{:.1f}".format(metaData.lowMz) + "-" +"{:.1f}".format(metaData.highMz), "{:.7f}".format(metaData.LOD)])
     return name
 
 
@@ -133,7 +133,11 @@ class MS2MetaData:
                 self.fillTime = float(v)
             else: # Remaining optional meta data
                 self.key2val[k]=v
-        self.iso2eff = getUniformIsoEfficiency(getIsolatedIsotopes(self.isoCenter, self.isoWidth, self.monoMz, self.z))
+        #print(key2val)
+        if self.isoCenter != 0:
+            self.iso2eff = getUniformIsoEfficiency(getIsolatedIsotopes(self.isoCenter, self.isoWidth, self.monoMz, self.z))
+        else:
+            self.iso2eff = set([0])
             
             
 def getIsolatedIsotopes(center, width, mono, z):

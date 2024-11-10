@@ -4,11 +4,11 @@
 #BSUB -a 'docker(dennisgoldfarb/pytorch_ris:lightning)'
 #BSUB -J train
 #BSUB -q general
-#BSUB -R 'gpuhost rusage[mem=80GB]'
+#BSUB -R 'gpuhost rusage[mem=140GB]'
 #BSUB -gpu 'num=1:gmem=39G:gmodel=NVIDIAA100_SXM4_80GB'
-#BSUB -n 4
+#BSUB -n 8
 #BSUB -W 20000
-#BSUB -M 80G
+#BSUB -M 140G
 #BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/train.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/train.%J.err.txt
 

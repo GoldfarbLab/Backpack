@@ -17,12 +17,12 @@ test_outfile = open(os.path.join(out_path, "pep.test.msp"), "w")
 #        train_peptides.add(line.strip())
     
 val_peptides = set()
-with open(os.path.join(pep_inpath, "pep.val.msp"), 'r') as infile:
+with open(os.path.join(pep_inpath, "pep.val2.msp"), 'r') as infile:
     for line in infile:
         val_peptides.add(line.strip())
 
 test_peptides = set()
-with open(os.path.join(pep_inpath, "pep.test.msp"), 'r') as infile:
+with open(os.path.join(pep_inpath, "pep.test2.msp"), 'r') as infile:
     for line in infile:
         test_peptides.add(line.strip())
 

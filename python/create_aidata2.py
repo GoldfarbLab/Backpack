@@ -32,10 +32,6 @@ def processFile(files, dataset, mask_ppm_tol=50):
     position_path = os.path.join(config['base_path'], config['position_path'])
     if not os.path.exists(position_path): os.makedirs(position_path)
     position_outfile = open(os.path.join(position_path, "fpos" + dataset + ".txt"), 'w')
-    # Create label outfile
-    label_path = os.path.join(config['base_path'], config['label_path'])
-    if not os.path.exists(label_path): os.makedirs(label_path)
-    label_outfile = open(os.path.join(label_path, dataset + "_labels.txt"), 'w')
     
     for file in files:
         for scan_i, scan in enumerate(msp.read_msp_file(file)):
@@ -65,7 +61,9 @@ def processFile(files, dataset, mask_ppm_tol=50):
             lines = []
             num_valid = 0
             
-            lines.append("NAME: %s|%s|%d|%.2f|%.1f|%.1f|%.7f|%d\n"%(pep, mod_string, scan.metaData.z, float(scan.metaData.key2val["NCE_aligned"]), scan.metaData.lowMz, scan.metaData.highMz, scan.metaData.LOD, num_peaks))
+            weight = np.sqrt(scan.metaData.purity * scan.metaData.rawOvFtT)
+            
+            lines.append("NAME: %s|%s|%d|%.2f|%.1f|%.1f|%.7f|%.1f|%d\n"%(pep, mod_string, scan.metaData.z, float(scan.metaData.key2val["NCE_aligned"]), scan.metaData.lowMz, scan.metaData.highMz, scan.metaData.LOD, weight, num_peaks))
             
             for i, [annot_list, peak] in enumerate(zip(scan.annotations, scan.spectrum)):
                 norm_int = peak.getIntensity()#/max_int
@@ -96,10 +94,6 @@ def processFile(files, dataset, mask_ppm_tol=50):
                     lines.append('%s %d %.4f %.5f %s\n'%("?", -1, peak.getMZ(), peak.getIntensity(), "0"))
                     
             if num_valid >= 2:
-                # write label
-                
-                weight = np.sqrt(scan.metaData.purity * scan.metaData.rawOvFtT)
-                label_outfile.write(rename_mods(pep, scan.name) + "_%.2f"%(weight) + "\n")
                 # write position
                 position_outfile.write("%d "%dataset_outfile.tell())
                 # write dataset
@@ -120,5 +114,5 @@ if job_ID == 1:
 elif job_ID == 2:
     processFile([config['val_files']], 'val', 15)
 elif job_ID == 3:
-    processFile([config['train_files']], 'train', 15)
-    #processFile([config['interp_files'], config['train_files']], 'train', 15)
+    #processFile([config['train_files']], 'train', 15)
+    processFile([config['interp_files'], config['train_files']], 'train', 15)

@@ -553,22 +553,22 @@ class annotator:
                                     self.scanForIsotopes(scan, annot, error_tol, count_matches)
         
         # update annotation counts by subtracting away ambigous annotations
-        if count_matches:
-            subtracted_annots = set()
-            for annot_list in scan.annotations:
-                if len(annot_list.entries) > 1:
-                    iso2count = defaultdict(int)
-                    # are there the same isotopes present?
-                    for annot in annot_list.entries:
-                        iso2count[annot.isotope] += 1
-                    # subtract the same isotopes:
-                    for annot in annot_list.entries:
-                        annot_name = annot.getName()
-                        if annot_name not in subtracted_annots:
-                            if iso2count[annot.isotope] > 1:
-                                subtracted_annots.add(annot_name)
-                                self.match2stats[annot_name][0] -= 1
-                                self.match2stats[annot_name][1] -= 1
+        #if count_matches:
+        #    subtracted_annots = set()
+        #    for annot_list in scan.annotations:
+        #        if len(annot_list.entries) > 1:
+        #            iso2count = defaultdict(int)
+        #            # are there the same isotopes present?
+        #            for annot in annot_list.entries:
+        #                iso2count[annot.isotope] += 1
+        #            # subtract the same isotopes:
+        #            for annot in annot_list.entries:
+        #                annot_name = annot.getName()
+        #                if annot_name not in subtracted_annots:
+        #                    if iso2count[annot.isotope] > 1:
+        #                        subtracted_annots.add(annot_name)
+        #                        self.match2stats[annot_name][0] -= 1
+        #                        self.match2stats[annot_name][1] -= 1
                         
         return scan
     

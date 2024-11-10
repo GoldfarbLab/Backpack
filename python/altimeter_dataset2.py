@@ -20,8 +20,7 @@ class AltimeterDataModule(LightningDataModule):
     def getAltimeterDataset(self, dataset):
         pos_path = os.path.join(self.config['base_path'], self.config['position_path'], "fpos" + dataset + ".txt")
         data_path = os.path.join(self.config['base_path'], self.config['dataset_path'], dataset + ".txt")
-        lab_path = os.path.join(self.config['base_path'], self.config['label_path'], dataset + "_labels.txt")
-        return AltimeterDataset(pos_path, lab_path, data_path, self.D, num_workers=self.config['num_workers'])
+        return AltimeterDataset(pos_path, data_path, self.D, num_workers=self.config['num_workers'])
 
     def setup(self, stage: str):
         if stage == "fit":
@@ -48,10 +47,9 @@ class AltimeterDataModule(LightningDataModule):
         pass
 
 class AltimeterDataset(Dataset):
-    def __init__(self, pos_path, label_path, data_path, dobj, num_workers=1, transform=None):
+    def __init__(self, pos_path, data_path, dobj, num_workers=1, transform=None):
         
         self.positions = np.loadtxt(pos_path).astype(int)
-        self.labels = np.array([line.strip() for line in open(label_path,'r')])
         self.worked_id2fdata = dict()
         for worker_id in range(num_workers):
              self.worked_id2fdata[worker_id] = open(data_path, "r")
@@ -75,9 +73,8 @@ class AltimeterDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        samples, info = self.input_from_str(self.labels[idx])
+        targ, _, mask, samples, info  = self.target(self.worked_id2fdata[worker_id], self.positions[idx], return_mz=False)
         seq, mod, charge, nce, min_mz, max_mz, LOD, weight = info
-        targ, _, mask = self.target(self.worked_id2fdata[worker_id], self.positions[idx], return_mz=False)
         sample = {'samples': samples, 'targ': targ, 'mask': mask, 'seq': seq, 'mod': mod, 'charge': charge, 'nce': nce, 'min_mz': min_mz, 'max_mz': max_mz, 'LOD': LOD, 'weight': weight}
 
         if self.transform:
@@ -86,21 +83,18 @@ class AltimeterDataset(Dataset):
         return sample
     
     def get_target_plot(self, idx):
-        samples, info = self.input_from_str(self.labels[idx])
+        targ, _, mask, samples, info  = self.target(self.worked_id2fdata[0], self.positions[idx], return_mz=False)
         seq, mod, charge, nce, min_mz, max_mz, LOD, weight = info
         targ, moverz, annotated, mask = self.target_plot(self.worked_id2fdata[0], self.positions[idx])
         
         return [samples, targ, mask, seq, mod, charge, nce, min_mz, max_mz, LOD, weight, moverz, annotated]
     
     def input_from_str(self, strings):
-        [seq,other] = strings.split('/')
-        osplit = other.split("_")
-       
-        [charge, mod, nce, scan_range, LOD, weight] = osplit
+        [seq, mod, charge, nce, min_mz, max_mz, LOD, weight, _] = strings.split("|")
         charge = int(charge)
         nce = float(nce[3:])
-        min_mz = float(scan_range.split("-")[0])
-        max_mz = float(scan_range.split("-")[1])
+        min_mz = float(min_mz)
+        max_mz = float(max_mz)
         LOD = float(LOD)
         weight = float(weight)
             
@@ -134,7 +128,10 @@ class AltimeterDataset(Dataset):
         
         # Fill the output
         fp.seek(fstart)
-        nmpks = int(fp.readline().split()[1].split("|")[-1])
+        name = fp.readline().split()[1]
+        sample, info = self.input_from_str(name)
+        
+        nmpks = int(name.split("|")[-1])
         for pk in range(nmpks):
             line = fp.readline()
             [d,I,mz,intensity,mask] = line.split()
@@ -144,7 +141,7 @@ class AltimeterDataset(Dataset):
             masks[0,I] = int(mask)
             if return_mz: moverz[0,I] = float(mz)
 
-        return target, moverz, masks
+        return target, moverz, masks, sample, info
     
     def target_plot(self, fp, fstart, mint=0):
         target = []
