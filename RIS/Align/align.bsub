@@ -1,0 +1,19 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/pytorch_ris:pyopenms)'
+#BSUB -J align
+#BSUB -q general
+#BSUB -R 'gpuhost rusage[mem=12GB]'
+#BSUB -gpu 'num=1:gmem=30G:gmodel=NVIDIAA100_SXM4_80GB'
+#BSUB -W 20000
+#BSUB -M 12G
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/align.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/align.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+
+# Make output directory
+mkdir -p ${RESULTS_PATH}/NCE/
+
+/bin/python3 ${SRC_PATH}/python/NCE_align_DDA.py ${RESULTS_PATH}/deisotope/20220909_EXPL8_Evo5_ZY_MixedSpecies_500ng_E5H50Y45_30SPD_DIA_1.msp.deisotoped /storage1/fs1/d.goldfarb/Active/Projects/Backpack/ #${RESULTS_PATH}/NCE/

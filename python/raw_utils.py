@@ -40,7 +40,7 @@ def getFileMetaData(rawFile):
     return RawFileMetaData(key2val)
 
 
-def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol):
+def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol, pep_z=None):
     key2val = dict()
     
     reaction = scanEvent.GetReaction(0)
@@ -71,7 +71,7 @@ def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol
             key2val["RawOvFtT"] = v.strip()
         elif k == 'Monoisotopic M/Z:':
             key2val["MonoMZ"] = v.strip()
-            if float(v) <= 0: return None
+            #if float(v) <= 0: print("no monoMz"); return None
         elif k == "HCD Energy eV:":
             key2val["eV"] = v.strip()
         elif k == "HCD Energy V:":
@@ -82,7 +82,7 @@ def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol
     filterString = scanFilter.ToString()
     
     # Don't include multiple reactions
-    if len(filterString.split()[-2].split("@")) > 2: return None
+    if len(filterString.split()[-2].split("@")) > 2: print("multiple reactions"); return None
     
     key2val["Polarity"] = "+" if any(["+" == f for f in filterString.split()]) else "-"   
     key2val["Reaction"] = re.findall("[a-zA-Z]+", filterString.split()[-2].split("@")[1])[0]
@@ -93,7 +93,13 @@ def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol
     key2val["HighMZ"] = filterString.split()[-1].split("-")[1][0:-1]
     key2val["Scan Filter"] = filterString
     
-    if key2val["Analyzer"] != "FTMS": return MS2MetaData(key2val)
+    if float(key2val["MonoMZ"]) <= 0: 
+        key2val["MonoMZ"] = peptide.getMZ(pep_z)
+        key2val["z"] = pep_z
+        #key2val["MonoMZ"] = key2val["IsoCenter"]
+        #key2val["z"] = str(int(float(key2val["HighMZ"]) / float(key2val["MonoMZ"])))
+        
+    if key2val["Analyzer"] == "ITMS": return MS2MetaData(key2val)
     
     abundance, purity = getPurity(rawFile, scan_id, rt, isolationWidth, float(key2val["IsoCenter"]), float(key2val["MonoMZ"]), int(key2val["z"]), ppm_tol)
     key2val["Purity"] = purity

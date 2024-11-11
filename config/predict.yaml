@@ -1,0 +1,47 @@
+dic_config: /scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_noRootNCEMean/saved_model/data.yaml
+model_config: /scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_noRootNCEMean/saved_model/model_config.yaml
+model_ckpt: /scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_noRootNCEMean/saved_model/ckpt_step1191168_0.9033
+enable_gpu: True
+
+to_predict: /storage1/fs1/d.goldfarb/Active/RIS_Goldfarb_Lab/NTW/PIONEER/PIONEER_PAPER/SPEC_LIBS/AltimiterOct13Version/Altimeter101324_MixedSpecies_OlsenAstral_NoEntrapment_101324.poin/precursors_for_altimiter.csv
+out_file: /storage1/fs1/d.goldfarb/Active/Backpack/libraries/astral/Altimeter101324_MixedSpecies_OlsenAstral_NoEntrapment_101324_zCorrectedNathan/Altimeter
+
+batch_size: 1000
+
+search_empty_pos: True
+dsets:
+   valuniq: 
+      msp: path/to/valuniq/ValidUniq2022418_2023J1_edit.msp
+   valsim:
+      msp: path/to/valsim/ValidSim2022418_mPhos_edit.msp
+   valcom:
+      msp: path/to/valcom/ValidCom2022418_mPhos_edit.msp
+   test:
+      msp: path/to/test/TestUniq202277_2023J1.msp
+dsetspred:
+   valuniqps:
+      msp: predictions/valuniq_ps.msp
+   valsimps:
+      msp: predictions/valsim_ps.msp
+   valcomps:
+      msp: predictions/valcom_ps.msp
+   valuniq:
+      msp: predictions/valuniq_pred.msp
+   test:
+      msp: predictions/test_pred.msp
+mode: interactive
+write_msp:
+   label_type: 
+   label_path: 'path/to/labels/HMPhos_labels16.txt'
+   dset: valcom
+   comments_path: 'path/to/comments/HMPhos_comments.txt'
+   cecorr: 0
+   print_every: 2000
+   outfn: "temp/aout"
+calc_cs:
+   predset: test
+   rawset: test
+   map_path:
+   closest_match: False
+   CSkwargs:
+   outfn: "test.cs"

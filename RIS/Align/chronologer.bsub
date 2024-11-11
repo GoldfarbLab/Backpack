@@ -1,0 +1,17 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/chronologer:latest)'
+#BSUB -J chronologer
+#BSUB -q general
+#BSUB -R 'rusage[mem=16GB] span[hosts=1]'
+#BSUB -n 1
+#BSUB -W 6000
+#BSUB -M 16GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/chronologer.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/chronologer.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+
+python3 ${SRC_PATH}/python/sage_to_chrono.py ${RESULTS_PATH}/sage/results.sage.tsv ${RESULTS_PATH}/sage/peps.tsv
+chronologer_predict --chronologer_model ${SRC_PATH}/docker/chronologer/Chronologer_20220601193755.pt ${RESULTS_PATH}/sage/peps.tsv ${RESULTS_PATH}/sage/chronologer.tsv

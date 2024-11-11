@@ -13,7 +13,7 @@ test_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/test.msp
 interp_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/interp_imm_01.msp
 
 config:
-weights:
+weights: /scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_noRootNCEMean/saved_model/ckpt_step1191168_0.9033
 restart:
 transfer:
 

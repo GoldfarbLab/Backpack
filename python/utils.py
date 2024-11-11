@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.linalg import norm
 import pyopenms as oms
+from collections import defaultdict
 
 def cosineSim(A,B):
     return np.dot(A,B)/max(1e-8,(norm(A)*norm(B)))
@@ -32,3 +33,36 @@ def pepFromSage(mod_seq):
     mod_seq = mod_seq.replace("]-", "]")
     mod_seq = mod_seq.replace("-[", "[")
     return oms.AASequence.fromString(mod_seq)
+
+
+def get_mod_seq(seq, mods):
+    mods_oms = mods.replace("Unimod:4", "Carbamidomethyl").replace("Unimod:35", "Oxidation")
+    mods_oms = mods.replace("UNIMOD:4", "Carbamidomethyl").replace("UNIMOD:35", "Oxidation")
+    corrected_mods = ""
+    if len(mods_oms) > 0:
+        index2mod = defaultdict(list)
+        for mod in mods_oms.split("(")[1:]:
+            mod = mod.strip(")")
+            index, aa, ptm = mod.split(",")
+            index = int(index)-1
+            index2mod[index].append(ptm)
+            corrected_mods += "(" + str(index) + "," + aa + "," + ptm + ")"
+        mod_seq = ""
+        for i, aa in enumerate(seq):
+            if i in index2mod:
+                for mod in index2mod[i]:
+                    if mod == "Acetyl":
+                        mod_seq += "(" + mod + ")"
+            mod_seq += aa
+            if i in index2mod:
+                for mod in index2mod[i]:
+                    if mod != "Acetyl":
+                        mod_seq += "(" + mod + ")"
+        peptide = oms.AASequence.fromString(mod_seq)
+        mods_oms = str(len(mods_oms.split("("))-1) + mods_oms
+        corrected_mods = str(len(mods_oms.split("("))-1) + corrected_mods
+    else:
+        peptide = oms.AASequence.fromString(seq)
+        mods_oms = '0'
+                
+    return peptide, mods_oms

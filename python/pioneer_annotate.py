@@ -30,13 +30,11 @@ from ThermoFisher.CommonCore.Data.FilterEnums import IonizationModeType, MSOrder
 from ThermoFisher.CommonCore.Data.Interfaces import IScanEventBase, IScanFilter
 
 parser = argparse.ArgumentParser(
-                    prog='Sage filter',
-                    description='Filter Sage results by ID quality metrics')
-parser.add_argument("sage_results")
-parser.add_argument("chrono_path")
+                    prog='Pioneer filter',
+                    description='Filter Pioneer results by ID quality metrics')
+parser.add_argument("pioneer_results")
 parser.add_argument("raw_path")
 parser.add_argument("out_path")
-parser.add_argument("dict_path")
 parser.add_argument("--hyperscore", default=30, type=float)
 parser.add_argument("--psm_q", default=0.01, type=float)
 parser.add_argument("--pep_q", default=0.01, type=float)
@@ -63,49 +61,12 @@ with open(os.path.join(os.path.dirname(__file__), "../config/annotator.yaml"), '
 
 #################################################################################
 
-data = pd.read_csv(args.sage_results, sep="\t")
-data = data[data["spectrum_q"] <= args.psm_q]
-data = data[data["peptide_q"] <= args.pep_q]
-data = data[data["posterior_error"] <= args.post_error]
-accs = args.protein_acc_include.split(" ")
-filtered_data = []
-for acc in accs:
-    filtered_data.append(data[data["proteins"].str.contains(acc)])
-data = pd.concat(filtered_data).drop_duplicates().reset_index(drop=True)
-#data = data[data["label"] == 1]
-data = data[data["matched_peaks"] >= args.min_matched_peaks]
-data = data[data["hyperscore"] >= args.hyperscore]
+data = pd.read_csv(args.pioneer_results, sep=",", keep_default_na=False)
 
 print("Post score filter:", len(data.index))
 
-chrono = pd.read_csv(args.chrono_path, sep="\t").drop(['CodedPeptideSeq', 'PeptideLength'], axis=1)
+data.to_csv(args.pioneer_results + ".filtered", sep="\t", index=False, quoting=csv.QUOTE_NONE, escapechar='\\')
 
-data = data.merge(chrono, left_on='peptide', right_on='PeptideModSeq', how='inner')
-
-print("Post inner join:", len(data.index))
-
-data = data.sort_values('rt')
-y_points = np.array(data['Pred_HI'])
-x_points = np.array(data['rt'])
-
-model = interpolate.LSQUnivariateSpline(x_points, y_points, np.linspace(np.min(x_points), np.max(x_points), 7)[1:6], k=3)
-deviations = np.abs(y_points - model(x_points))
-mad = np.median(deviations)
-
-x_points = x_points[deviations <= 10*mad]
-y_points = y_points[deviations <= 10*mad]
-
-model = interpolate.LSQUnivariateSpline(x_points, y_points, np.linspace(np.min(x_points), np.max(x_points), 7)[1:6], k=3)
-
-deviations = np.abs(y_points - model(x_points))
-mad = np.median(deviations)
-
-print("Post RT filter:", len(data.index))
-data = data[np.abs(model(data['rt']) - data['Pred_HI']) <= 3*mad]
-
-data.to_csv(args.sage_results + ".filtered", sep="\t", index=False, quoting=csv.QUOTE_NONE)
-
-print("Pre:", sum(data["label"] == 1), sum(data["label"] == -1))
 #################################################################################
 rawFile = RawFileReaderAdapter.FileFactory(args.raw_path)
 
@@ -120,7 +81,7 @@ with open(os.path.join(args.out_path, Path(os.path.basename(args.raw_path)).reso
     num_target = 0
     num_decoy = 0
     for index, row in data.iterrows():
-        scan_id = int(row["scannr"].split("=")[-1])
+        scan_id = row["scan_idx"]
         
         # Get the scan filter for this scan number
         scanFilter = IScanFilter(rawFile.GetFilterForScanNumber(scan_id))
@@ -129,28 +90,20 @@ with open(os.path.join(args.out_path, Path(os.path.basename(args.raw_path)).reso
         scanEvent = IScanEventBase(rawFile.GetScanEventForScanNumber(scan_id))
         
         # Get the ionizationMode, MS2 precursor mass, collision energy, and isolation width for each scan
-        peptide = utils.pepFromSage(row["peptide"])
-        scan_metaData = raw_utils.getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, args.ppm_tol)
+        peptide, _ = utils.get_mod_seq(row["sequence"], row['structural_mods'])
+        scan_metaData = raw_utils.getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, args.ppm_tol, pep_z = row['prec_charge'])
         
         if scan_metaData is None: print(scan_id, "no meta data"); continue
         if scan_metaData.reactionType != args.reaction: print(scan_id, "wrong reaction"); continue
         if scan_metaData.analyzer != args.analyzer: print(scan_id, "wrong analyzer", scan_metaData.analyzer); continue
-        if scan_metaData.z < args.min_z or scan_metaData.z > args.max_z: print(scan_id, "wrong charge"); continue
-        
-        if not (scan_metaData.z == 2 and int(row["charge"])) < 2: print(scan_id, "same charge"); continue 
-        #if scan_metaData.z != int(row["charge"]): print(scan_id, "different charge"); continue 
         if scan_metaData.purity < args.min_purity: print(scan_id, "unpure", scan_metaData.purity); continue
-        if scan_metaData.isoFit < args.min_iso_cs: print(scan_id, "bad iso fit"); continue
-        if scan_metaData.isoTargInt < args.min_iso_target_int: print(scan_id, "bad iso target"); continue
+        if scan_metaData.isoFit < args.min_iso_cs: print(scan_id, "bad iso fit", scan_metaData.isoFit); continue
+        #if scan_metaData.isoTargInt < args.min_iso_target_int: print(scan_id, "bad iso target"); continue
         if scan_metaData.polarity != args.polarity: print(scan_id, "wrong polarity"); continue
         #if scan_metaData.fillTime >= 22: continue
         #if scan_metaData.rawOvFtT < 200000: continue
         
-        if row["label"] == 1:
-            num_target+=1
-        else: 
-            num_decoy+=1
-            continue
+        num_target+=1
         
         print("IDed", scan_id)
         
@@ -159,7 +112,7 @@ with open(os.path.join(args.out_path, Path(os.path.basename(args.raw_path)).reso
         spectrum.set_peaks([centroidStream.Masses, centroidStream.Intensities])
         annotations = [annotation_list([]) for i in range(spectrum.size())]
         masks = ["?" for i in range(spectrum.size())]
-        name = msp.createMSPName(row["peptide"], scan_metaData)
+        name = msp.createMSPName(row["modified_sequence"], scan_metaData)
         
         scan = msp.scan(name, peptide, rawFileMetaData, scan_metaData, spectrum, annotations, masks)
         
@@ -171,14 +124,7 @@ with open(os.path.join(args.out_path, Path(os.path.basename(args.raw_path)).reso
 
         scan.writeScan(outfile)
         
-print("Counts:", num_target, num_decoy, args.raw_path)
+print("Counts:", num_target, args.raw_path)
 
-
-with open(os.path.join(args.dict_path, "ion_dictionary.txt"), 'w') as outfile:
-        writer = csv.writer(outfile, delimiter='\t', quoting=csv.QUOTE_NONE)
-        for frag in annotator.match2stats:
-            obs, total = annotator.match2stats[frag]
-            writer.writerow([frag, str(obs), str(total)])
-    
         
         

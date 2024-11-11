@@ -52,7 +52,6 @@ else:
 
 wandb_logger = WandbLogger(project="Altimeter", config = config, log_model=False)
 
-
 ###############################################################################
 ################################## Model ######################################
 ###############################################################################
@@ -88,6 +87,7 @@ with open(os.path.join(model_folder_path, "data.yaml"), "w") as file:
 with open(os.path.join(model_folder_path, "ion_dictionary.txt"), 'w') as file:
     file.write(open(config['ion_dictionary_path']).read())
     
+
 def SpectralAngle(cs, eps=1e-5):
     cs = np.clip(cs, a_min=-(1-eps), a_max = 1-eps)
     return 1 - 2 * (np.arccos(cs) / np.pi)
@@ -185,7 +185,6 @@ class MirrorPlotCallback(L.Callback):
         sort_pred = mzpred.argsort() # ion dictionary index to m/z ascending order
         sort_targ = mz.argsort()
         
-        
         pred = pred[sort_pred]
         targ = targ[sort_targ]
         mz = mz[sort_targ]
@@ -210,15 +209,13 @@ class MirrorPlotCallback(L.Callback):
         
         ax.add_patch(rect_lower)
         ax.add_patch(rect_upper)
-        
+
         # plot annotated target peaks
         linestyles = ["solid" if m == 0 else (0, (1, 1)) for m in mask[annotated]]
         ax.vlines(mz[annotated], ymin=0, ymax=targ[annotated], linewidth=1, color='#111111', linestyle=linestyles)
         # plot unannotated target peaks
         ax.vlines(mz[annotated == False], ymin=0, ymax=targ[annotated == False], linewidth=1, color='#BBBBBB')
-        
-        
-        
+         
         # plot immonium
         plot_indices = np.logical_and(np.char.find(ionspred, "Int") != 0, np.char.find(ionspred, "I") == 0)
         colors = ["#ff7f00" if m >= LOD else "#BBBBBB" for m in pred[plot_indices]]
@@ -287,7 +284,6 @@ class MirrorPlotCallback(L.Callback):
         pred, mz_pred, _ = filter_by_scan_range(mzpred, pred, min_mz, max_mz)
 
 
-
         targ_aligned, pred_aligned, mz_aligned = match(targ_anno, mz_anno, pred, mz_pred)
         
         targ_aligned = norm_base_peak(targ_aligned)
@@ -309,9 +305,6 @@ class MirrorPlotCallback(L.Callback):
         pl_module.logger.experiment.log({"mirroplot": wandb.Image(plt)})
         plt.close()
     
-
-
-
 
 ###############################################################################
 ########################## Training and testing ###############################
