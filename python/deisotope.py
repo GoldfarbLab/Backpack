@@ -35,9 +35,10 @@ def processFile(file, write_unannotated):
             
             
 def deisotope(scan):
-    scan.normalizeToBasePeak()
+    #scan.normalizeToBasePeak()
     #scan.normalizeToTotalAnnotated()
     #scan.normalizeToTotal()
+    scan.normalizeToTotalAnnotated(doLOD = True)
     # create dictionary of base_ion2isotopes_index (observed)
     mzs = []
     intensities = []
@@ -181,4 +182,4 @@ def deisotope(scan):
 
     return scan
  
-processFile(args.msp_path, write_unannotated=True)
+processFile(args.msp_path, write_unannotated=False)

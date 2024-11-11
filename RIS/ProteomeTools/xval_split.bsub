@@ -11,4 +11,6 @@
 #BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/xv_split.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/xv_split.%J.err.txt
 
-python3.9 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/xv_split.py /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/dataset.msp /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/pep.msp /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/
+python3.9 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/xv_split.py /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/pep.msp /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/
+
+#/scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/dataset.msp 

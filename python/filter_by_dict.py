@@ -27,6 +27,8 @@ with open(args.dict_path, 'r') as infile:
     for row in reader:
         match2stats[row[0]] = [int(row[1]), int(row[2])]
 valid_ions = match2stats.keys()
+
+print("y11^6" in match2stats)
         
 with open(args.out_path, 'w') as outfile:
     for i, scan in enumerate(msp.read_msp_file(args.msp_path)):

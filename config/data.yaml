@@ -1,14 +1,16 @@
-base_path: /scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_noRootNCEMean/
-ion_dictionary_path: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ion_dict.tsv
+base_path: /scratch1/fs1/d.goldfarb/Backpack/training/byp_imm/ #byp_interp/
+ion_dictionary_path: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ion_dict_imm.tsv #ion_dict.tsv
 dataset_path: datasets/
 position_path: txt_pos/
 label_path: labels/
 saved_model_path: saved_model/
 saved_annot_model_path: saved_annot_model/
 
+#train_files: /storage1/fs1/d.goldfarb/Active/Backpack/troubleshooting/small_test.msp
 train_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/train.msp
 val_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/val.msp
 test_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/test.msp
+interp_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/interp_imm_01.msp
 
 config:
 weights: /scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_noRootNCEMean/saved_model/ckpt_step1191168_0.9033
@@ -41,25 +43,26 @@ chlim:
    - 8
 
 model_config:
-   embedsz: 256
-   blocks: 9
+   embedsz: 256 # 256
+   blocks: 32 # 9
    head:
-      - 16
-      - 16
-      - 64
+      - 16 # 16
+      - 16 # 16
+      - 64 # 64
    units: None
-   filtlast: 512
-   CEembed: True
+   filtlast: 512 # 512
    learn_ffn_embed: False
+   CEembed: True
+
 
 root_int:
-lr: 2e-4
-#33
-epochs: 1
+lr: 1e-4
+epochs: 33
 steps: 1000000
 batch_size: 100
-test_batch_size: 1000
+test_batch_size: 200
 lr_decay_start: 3
 lr_decay_rate: 0.85
 svwts: all
+num_workers: 4
 
