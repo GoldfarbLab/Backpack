@@ -14,5 +14,5 @@
 source LSF_SCRIPT_PATH/config.sh
 
 cat ${SCRATCH_PATH}/ProteomeTools/**/**/results/dict/* > ${SCRATCH_PATH}/ProteomeTools/ion_dict_raw.tsv
-python3.9 ${SRC_PATH}/python/merge_ion_dict.py ${SCRATCH_PATH}/ProteomeTools/ion_dict_raw.tsv ${SCRATCH_PATH}/ProteomeTools/ion_dict_imm.tsv
+python3.9 ${SRC_PATH}/python/merge_ion_dict.py ${SCRATCH_PATH}/ProteomeTools/ion_dict_raw.tsv ${SCRATCH_PATH}/ProteomeTools/ion_dict_nl.tsv
 rm ${SCRATCH_PATH}/ProteomeTools/ion_dict_raw.tsv

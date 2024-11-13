@@ -8,10 +8,10 @@ function get_jobid {
 
 # submit pipeline1 on each dataset (convert, sage, chronologer, annotate)
 ./processFolder.sh Part1 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/ pipeline
-#./processFolder.sh Part2 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part2/ pipeline
-#./processFolder.sh Part3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config_aspN.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/aspn/ pipeline
-#./processFolder.sh Part3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config_lysN.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/lysn/ pipeline
-#./processFolder.sh Part3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/HLA/ pipeline
+./processFolder.sh Part2 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part2/ pipeline
+./processFolder.sh Part3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config_aspN.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/aspn/ pipeline
+./processFolder.sh Part3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config_lysN.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/lysn/ pipeline
+./processFolder.sh Part3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/HLA/ pipeline
 
 
 # submit ion dictionary merge job
@@ -20,11 +20,11 @@ function get_jobid {
 #echo Submitted merge_ion_dict job with ID: $jid_dict
 
 # submit pipeline2 on each dataset (filter, deisotope, NCE_align)
-#./processFolder.sh Part1 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/ pipeline2
-#./processFolder.sh Part2 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part2/ pipeline2
-#./processFolder.sh Part3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config_aspN.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/aspn/ pipeline2
-#./processFolder.sh Part3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config_lysN.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/lysn/ pipeline2
-#./processFolder.sh Part3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/HLA/ pipeline2
+./processFolder.sh Part1 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part1/ pipeline2
+./processFolder.sh Part2 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part2/ pipeline2
+./processFolder.sh Part3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config_aspN.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/aspn/ pipeline2
+./processFolder.sh Part3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config_lysN.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/lysn/ pipeline2
+./processFolder.sh Part3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/closed_config.json /storage1/fs1/d.goldfarb/Active/Backpack/raw/ProteomeTools/Part3/HLA/ pipeline2
 
 
 # submit consolidate NCEs job
@@ -65,5 +65,5 @@ function get_jobid {
 #echo Submitted ai data job with ID: $jid_ai
 
 # submit model training job
-jid_train=$(get_jobid bsub < /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/Part1/01625b_GA1-TUM_first_pool_1_01_01-2xIT_2xHCD-1h-R1/scripts/train.bsub)
-echo Submitted train job with ID: $jid_train
+#jid_train=$(get_jobid bsub < /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/Part1/01625b_GA1-TUM_first_pool_1_01_01-2xIT_2xHCD-1h-R1/scripts/train.bsub)
+#echo Submitted train job with ID: $jid_train

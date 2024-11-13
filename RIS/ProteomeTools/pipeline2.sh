@@ -28,10 +28,10 @@ source ${SCRATCH_PATH}/ProteomeTools/${DATA_SET}/${DATA_NAME}/scripts/config.sh
 jid4=$(get_jobid bsub < $SCRIPT_PATH/filter.bsub)
 echo Submitted filter job for $DATA_NAME with ID: $jid4
 
-jid5=$(get_jobid bsub -w "ended($jid4)" < $SCRIPT_PATH/deisotope.bsub)
+#jid5=$(get_jobid bsub -w "ended($jid4)" < $SCRIPT_PATH/deisotope.bsub)
 #jid5=$(get_jobid bsub < $SCRIPT_PATH/deisotope.bsub)
-echo Submitted deisotope job for $DATA_NAME with ID: $jid5
+#echo Submitted deisotope job for $DATA_NAME with ID: $jid5
 
-jid6=$(get_jobid bsub -w "ended($jid5)" < $SCRIPT_PATH/NCE_align.bsub)
+#jid6=$(get_jobid bsub -w "ended($jid5)" < $SCRIPT_PATH/NCE_align.bsub)
 #jid6=$(get_jobid bsub < $SCRIPT_PATH/NCE_align.bsub)
-echo Submitted NCE alignment job for $DATA_NAME with ID: $jid6
+#echo Submitted NCE alignment job for $DATA_NAME with ID: $jid6

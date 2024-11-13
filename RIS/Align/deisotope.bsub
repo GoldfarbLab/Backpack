@@ -16,4 +16,5 @@ source LSF_SCRIPT_PATH/config.sh
 # Make output directory
 mkdir -p ${RESULTS_PATH}/deisotope/
 
-python3.9 ${SRC_PATH}/python/deisotope.py ${RESULTS_PATH}/annotated/20220909_EXPL8_Evo5_ZY_MixedSpecies_500ng_E5H50Y45_30SPD_DIA_1.msp ${RESULTS_PATH}/deisotope/
+python3.9 ${SRC_PATH}/python/deisotope.py ${RESULTS_PATH}/annotated/20230320_OLEP08_1000ngHeK_uPAC_180k-30min_MontBlanc_2Th_0p5_Cycle_01.msp.1da ${RESULTS_PATH}/deisotope/
+#python3.9 ${SRC_PATH}/python/deisotope.py ${RESULTS_PATH}/annotated/20220909_EXPL8_Evo5_ZY_MixedSpecies_500ng_E5H50Y45_30SPD_DIA_1.msp ${RESULTS_PATH}/deisotope/

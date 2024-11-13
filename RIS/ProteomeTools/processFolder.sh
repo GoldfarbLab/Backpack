@@ -14,7 +14,7 @@ do
         if [[ $base_name != *"ETD"* ]]; then
             echo "Executing $PIPELINE on $base_name"
             ./${PIPELINE}.sh $DATA_SET $CONFIG_PATH $f 
-            exit
+            #exit
         fi
     fi
 done

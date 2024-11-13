@@ -1,11 +1,11 @@
 #!/bin/bash
 #BSUB -g /d.goldfarb/compute
 #BSUB -G compute-d.goldfarb
-#BSUB -a 'docker(dennisgoldfarb/pytorch_ris:pyopenms)'
-#BSUB -J predict[2-10]
+#BSUB -a 'docker(dennisgoldfarb/pytorch_ris:lightning)'
+#BSUB -J predict[1-10]
 #BSUB -q general
 #BSUB -R 'gpuhost rusage[mem=12GB]'
-#BSUB -gpu 'num=1:gmem=30G:gmodel=TeslaV100_SXM2_32GB'
+#BSUB -gpu 'num=1:gmem=30G:gmodel=NVIDIAA100_SXM4_80GB'
 #BSUB -W 6000
 #BSUB -M 12G
 

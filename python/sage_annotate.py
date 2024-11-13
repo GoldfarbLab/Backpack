@@ -137,8 +137,8 @@ with open(os.path.join(args.out_path, Path(os.path.basename(args.raw_path)).reso
         if scan_metaData.analyzer != args.analyzer: print(scan_id, "wrong analyzer", scan_metaData.analyzer); continue
         if scan_metaData.z < args.min_z or scan_metaData.z > args.max_z: print(scan_id, "wrong charge"); continue
         
-        if not (scan_metaData.z == 2 and int(row["charge"])) < 2: print(scan_id, "same charge"); continue 
-        #if scan_metaData.z != int(row["charge"]): print(scan_id, "different charge"); continue 
+        #if not (scan_metaData.z == 2 and int(row["charge"])) < 2: print(scan_id, "same charge"); continue 
+        if scan_metaData.z != int(row["charge"]): print(scan_id, "different charge"); continue 
         if scan_metaData.purity < args.min_purity: print(scan_id, "unpure", scan_metaData.purity); continue
         if scan_metaData.isoFit < args.min_iso_cs: print(scan_id, "bad iso fit"); continue
         if scan_metaData.isoTargInt < args.min_iso_target_int: print(scan_id, "bad iso target"); continue

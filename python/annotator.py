@@ -329,7 +329,7 @@ class annotator:
                     annot.NL = ["NH3"]
                     isNH3Found = self.scanForIsotopes(scan, annot, error_tol, count_matches)
                 
-                if isFound and config['NLs']:
+                """ if isFound and config['NLs']:
                     
                     if frag_name[0] == "b" or "Int" in frag_name:
                         annot.NL = ["CO"]
@@ -422,7 +422,7 @@ class annotator:
                                     annot.NL[-1] = "2NH3"
                                     self.scanForIsotopes(scan, annot, error_tol, count_matches)
     
-                            if not isC2H5SNOFound: break
+                            if not isC2H5SNOFound: break """
     
         if config['precursor_ions']:   
             annot = annotation.annotation("p", [], [], 0, 0, None)

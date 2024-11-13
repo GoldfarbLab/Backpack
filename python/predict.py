@@ -1,5 +1,4 @@
 import torch
-from models import FlipyFlopy
 import utils
 import utils_unispec
 import msp
@@ -14,6 +13,7 @@ from annotation import annotation
 from collections import defaultdict
 import argparse
 import json
+from lightning_model import LitFlipyFlopy
 import pprint
 plt.close('all')
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -42,9 +42,7 @@ L = utils_unispec.LoadObj(D, embed=True)
 # Instantiate model
 with open(config['model_config']) as stream:
     model_config = yaml.safe_load(stream)
-    model = FlipyFlopy(**model_config, device=device)
-    model.load_state_dict(torch.load(config['model_ckpt'], weights_only=True))
-    model.to(device)
+    model = LitFlipyFlopy.load_from_checkpoint(config['model_ckpt'], config=config, model_config=model_config)
     model.eval()
 
 
@@ -141,7 +139,7 @@ def get_mod_seq(seq, mods):
     return peptide, mods_oms
 
 def getNCE(NCE, mz, z):
-    # Astral
+    # Astral - OLD
     #if z == 2:
     #    if mz >= 500: return 32.46 - 5
     #    else: return 11.5145 + (0.041891 * mz) - 5
@@ -149,7 +147,7 @@ def getNCE(NCE, mz, z):
     #    if mz >= 500: return 32.77 - 5
     #    else: return  9.823993 + (0.045892 * mz) - 5
         
-    # Exploris
+    # Exploris - OLD
     #if z == 2:
     #    return 27.59
     #elif z == 3:
@@ -159,7 +157,27 @@ def getNCE(NCE, mz, z):
     
     # Astral Nathan
     charge_facs = [1, 0.9, 0.85, 0.8, 0.75]
-    return NCE*(charge_facs[2]/charge_facs[z])
+    #return NCE*(charge_facs[2]/charge_facs[z])
+    
+    # Astral
+    NCE_aligned = (-23.5 + (2.346e-1*mz) + (-3.221e-4*pow(mz,2)) + (1.432e-07*pow(mz,3))) - 5
+    if z == 2:
+        return NCE_aligned
+    elif z == 3:
+        return (NCE_aligned - 2.372e-2) / charge_facs[z]
+    else:
+        return (NCE_aligned + 1.75e-1) / charge_facs[z]
+    
+    # Exploris
+    #NCE_aligned = -3.337 + (1.386e-1*mz) + (-1.861e-4*pow(mz,2)) + (7.783e-08*pow(mz,3))
+    #if z == 2:
+    #    return NCE_aligned
+    #elif z == 3:
+    #    return NCE_aligned + 2.023
+    #else:
+    #    return NCE_aligned + 4.811
+    
+    
     
        
 
@@ -168,7 +186,7 @@ def predict_batch(labels):
     samples, info = L.input_from_str(labels)
     samplesgpu = [m.to(device) for m in samples]
     
-    pred,_,_ = model(samplesgpu, test=False)
+    pred = model(samplesgpu)
     pred = torch.div(pred, torch.max(pred, dim=1, keepdim=True)[0])
     pred = pred.cpu().detach().numpy()
     

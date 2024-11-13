@@ -57,7 +57,7 @@ wandb_logger = WandbLogger(project="Altimeter", config = config, log_model=False
 ###############################################################################
 
 # Instantiate model
-litmodel = LitFlipyFlopy(FlipyFlopy(**model_config), config)
+litmodel = LitFlipyFlopy(config, model_config)
 
 
 # Load weights

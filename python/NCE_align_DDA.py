@@ -12,6 +12,7 @@ import pyopenms as oms
 import matplotlib.pyplot as plt
 from collections import defaultdict
 import argparse
+from lightning_model import LitFlipyFlopy
 plt.close('all')
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -39,9 +40,7 @@ L = utils_unispec.LoadObj(D, embed=True)
 # Instantiate model
 with open(config['model_config']) as stream:
     model_config = yaml.safe_load(stream)
-    model = FlipyFlopy(**model_config, device=device)
-    model.load_state_dict(torch.load(config['model_ckpt'], weights_only=True))
-    model.to(device)
+    model = LitFlipyFlopy.load_from_checkpoint(config['model_ckpt'], config=config, model_config=model_config)
     model.eval()
 
 
@@ -85,6 +84,8 @@ NCE_step_size = 0.01
 NCE_steps = 1+int((max_NCE-min_NCE) / NCE_step_size)
 NCE_steps = np.linspace(min_NCE, max_NCE, NCE_steps)
 
+print(os.path.join(args.out_path, "NCE_alignment.tsv"))
+
 with open(os.path.join(args.out_path, "NCE_alignment.tsv"), 'w', newline="", encoding='utf-8') as outfile:
     writer = csv.writer(outfile, delimiter="\t")
     writer.writerow(["scan_id", "mz", "z", "best_NCE", "SA"])
@@ -93,7 +94,7 @@ with open(os.path.join(args.out_path, "NCE_alignment.tsv"), 'w', newline="", enc
     with torch.no_grad():
         for i, scan in enumerate(msp.read_msp_file(args.msp_path)):
             pep = scan.peptide.toUnmodifiedString()
-            pep = "YQNDLSNLR"
+            #pep = "YQNDLSNLR"
             mod_string = rename_mods(pep, scan.getModString())
             if any([mod in mod_string for mod in dconfig['peptide_criteria']['modifications_exclude']]): continue
             
@@ -109,15 +110,17 @@ with open(os.path.join(args.out_path, "NCE_alignment.tsv"), 'w', newline="", enc
             samples, info = L.input_from_str(labels)
             samplesgpu = [m.to(device) for m in samples]
                 
-            pred,_,_ = model(samplesgpu, test=False)
+            pred = model(samplesgpu)
             pred = pred.cpu().detach()
             
             targ = targ.unsqueeze(0).expand_as(pred)
             
-            np.savetxt('/storage1/fs1/d.goldfarb/Active/Projects/Backpack/' + pep + ".txt", pred.numpy())
-            sys.exit()
+            #np.savetxt('/storage1/fs1/d.goldfarb/Active/Projects/Backpack/' + pep + ".txt", pred.numpy())
+            #sys.exit()
             
             SAs = LossFunc(targ, pred)
+            
+            #print(scan.metaData.scanID, scan.metaData.isoCenter, scan.metaData.z, NCE_steps[torch.argmax(SAs)], torch.max(SAs).numpy())
             
             writer.writerow([scan.metaData.scanID, scan.metaData.isoCenter, scan.metaData.z, NCE_steps[torch.argmax(SAs)], torch.max(SAs).numpy()])
             #row = "\t".join([str(scan.metaData.scanID), "{:.2f}".format(scan.metaData.isoCenter), str(scan.metaData.z), "{:.2f}".format(NCE_steps[torch.argmax(SAs)]), "{:.4f}".format(torch.max(SAs).numpy())])

@@ -1,5 +1,5 @@
 base_path: /scratch1/fs1/d.goldfarb/Backpack/training/byp_imm/ #byp_interp/
-ion_dictionary_path: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ion_dict_imm.tsv #ion_dict.tsv
+ion_dictionary_path: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ion_dict_nl.tsv #ion_dict.tsv
 dataset_path: datasets/
 position_path: txt_pos/
 label_path: labels/
@@ -13,7 +13,7 @@ test_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/test.msp
 interp_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/interp_imm_01.msp
 
 config:
-weights: /scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_noRootNCEMean/saved_model/ckpt_step1191168_0.9033
+weights: #/scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_noRootNCEMean/saved_model/ckpt_step1191168_0.9033
 restart:
 transfer:
 
@@ -53,6 +53,7 @@ model_config:
    filtlast: 512 # 512
    learn_ffn_embed: False
    CEembed: True
+   drop: 0.1
 
 
 root_int:

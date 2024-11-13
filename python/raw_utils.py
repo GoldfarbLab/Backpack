@@ -71,7 +71,7 @@ def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol
             key2val["RawOvFtT"] = v.strip()
         elif k == 'Monoisotopic M/Z:':
             key2val["MonoMZ"] = v.strip()
-            #if float(v) <= 0: print("no monoMz"); return None
+            if float(v) <= 0: print("no monoMz"); return None
         elif k == "HCD Energy eV:":
             key2val["eV"] = v.strip()
         elif k == "HCD Energy V:":
@@ -93,7 +93,7 @@ def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol
     key2val["HighMZ"] = filterString.split()[-1].split("-")[1][0:-1]
     key2val["Scan Filter"] = filterString
     
-    if float(key2val["MonoMZ"]) <= 0: 
+    if float(key2val["MonoMZ"]) <= 0 and pep_z is not None: 
         key2val["MonoMZ"] = peptide.getMZ(pep_z)
         key2val["z"] = pep_z
         #key2val["MonoMZ"] = key2val["IsoCenter"]

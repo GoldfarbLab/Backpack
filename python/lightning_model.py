@@ -4,14 +4,24 @@ import sys
 from torch.optim.lr_scheduler import StepLR, ExponentialLR
 import wandb
 import matplotlib.pyplot as plt
+from models_poly import FlipyFlopy
 
 # define the LightningModule
 class LitFlipyFlopy(L.LightningModule):
-    def __init__(self, model, config):
+    def __init__(self, 
+                 config,
+                 model_config):
         super().__init__()
-        self.model = model
+        self.model = FlipyFlopy(**model_config)
         self.config = config
         self.validation_step_outputs = []
+    #def __init__(self, 
+    #             model,
+    #             config):
+    #    super().__init__()
+    #    self.model = model
+    #    self.config = config
+    #    self.validation_step_outputs = []
 
     def training_step(self, batch, batch_idx):
         weighted_loss = self.step(batch, batch_idx)

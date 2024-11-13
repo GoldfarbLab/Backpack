@@ -4,7 +4,7 @@
 #BSUB -a 'docker(dennisgoldfarb/raw:latest)'
 #BSUB -J annotate
 #BSUB -q general
-#BSUB -R 'rusage[mem=1GB] span[hosts=1]'
+#BSUB -R "select[hname!='compute1-exec-105.ris.wustl.edu' && hname!='compute1-exec-97.ris.wustl.edu'] rusage[mem=1GB] span[hosts=1]"
 #BSUB -n 1
 #BSUB -W 300
 #BSUB -M 1GB
