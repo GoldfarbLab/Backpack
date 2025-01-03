@@ -1,0 +1,19 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/raw:latest)'
+#BSUB -J quad_fit
+#BSUB -q general
+#BSUB -R "select[hname!='compute1-exec-220.ris.wustl.edu'] rusage[mem=4GB] span[hosts=1]"
+#BSUB -n 1
+#BSUB -W 300
+#BSUB -M 4GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/quad_fit.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/quad_fit.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+
+# Make output directory
+mkdir -p ${RESULTS_PATH}/quad/
+
+python3.9 ${SRC_PATH}/python/quad_fit.py ${RESULTS_PATH}/filter/${DATA_NAME}.msp ${DATA_PATH} ${RESULTS_PATH}/quad/

@@ -119,7 +119,7 @@ class TalkingHeads(nn.Module):
             print("Wl=%f"%self.Wl.std())
             print("Ww=%f"%self.Ww.std())
             print("Wo=%f"%self.Wo.std())
-    def forward(self, inp, mask, test=True):
+    def forward(self, inp, mask):
         """
         Talking heads forward function
 
@@ -130,8 +130,6 @@ class TalkingHeads(nn.Module):
         mask : Vector that masks out null amino acids from softmax
                calculation. Set to zeros tensor if masking is undesired.
                mask.shape = (bs, seq_len)
-        test : Set to True if you want to calculate and return intermediate
-               activation statistics, False to run faster during training.
 
         Returns
         -------
@@ -158,19 +156,7 @@ class TalkingHeads(nn.Module):
         INP = self.shortcut(inp.transpose(-1,-2)).transpose(-1,-2)
         output = INP + resid
         
-        if test:
-            Q_ = Q.mean();Q__ = Q.std();K_ = K.mean();K__ = K.std()
-            V_ = V.mean();V__ = V.std();J_ = J.mean();J__ = J.std()
-            EL_ = EL.mean();EL__ = EL.std();FM = W.max(2)[0].mean()
-            U_ = U.mean();U__ = U.std();O_ = O.mean();O__ = O.std()
-            resid_ = resid.mean();resid__ = resid.std()
-            output_ = output.mean();output__ = output.std()
-            activations = (Q_, Q__, K_, K__, V_, V__, J_, J__, EL_, EL__, FM, 
-                           U_, U__, O_, O__, resid_, resid__, output_, output__)
-        else:
-            activations = ()
-        
-        return output, activations, W
+        return output
 
 class FFN(nn.Module):
     def __init__(self,
@@ -218,7 +204,7 @@ class FFN(nn.Module):
         if verbose:
             print("FFN=%f"%self.W1.std())
     
-    def forward(self, inp, embinp=None, test=True):
+    def forward(self, inp, embinp=None):
         """
         Feed forward network forward function.
 
@@ -227,8 +213,6 @@ class FFN(nn.Module):
         inp : Input tensor. inp.shape = (bs, in_ch, seq_len)
         embinp : Embedded input of charge and collision energy fourier features.
                  embinp.shape = (bs, embed)
-        test : Set to True if you want to calculate and return intermediate
-               activation statistics, False to run faster during training.
 
         Returns
         -------
@@ -244,16 +228,8 @@ class FFN(nn.Module):
         resid2 = self.drop(resid2)
         
         output = inp + resid2
-        
-        if test:
-            resid1_ = resid1.mean();resid1__ = resid1.std()
-            resid2_ = resid2.mean();resid2__ = resid2.std()
-            output_ = output.mean();output__ = output.std()
-            activations = (resid1_, resid1__, resid2_, resid2__, output_, output__)
-        else:
-            activations = ()
-            
-        return output, activations
+    
+        return output
 
 class TransBlock(nn.Module):
     def __init__(self,
@@ -274,7 +250,8 @@ class TransBlock(nn.Module):
         self.head = TalkingHeads(*hargs)
         self.norm2 = nn.BatchNorm1d(units1)
         self.ffn = FFN(*fargs)
-    def forward(self, inp, embed=None, mask=None, test=True):
+        
+    def forward(self, inp, embed=None, mask=None):
         """
         Forward call for TransBlock
 
@@ -284,8 +261,6 @@ class TransBlock(nn.Module):
         embed : Optional embedding tensor for charge and collision energy, fed 
                 into FFN layer.
         mask : Optional mask for attention layer.
-        test : Optional boolean to return intermediate activations from both
-               the attention and ffn layers.
 
         Returns
         -------
@@ -294,11 +269,11 @@ class TransBlock(nn.Module):
         FM : Feature/attention maps from attention layer.
 
         """
-        out, out2, FM = self.head(inp, mask, test)
+        out = self.head(inp, mask)
         out = self.norm1(out)
-        out, out3 = self.ffn(out, embinp=embed, test=test)
+        out = self.ffn(out, embinp=embed)
         out = self.norm2(out)
-        return out, out2+out3, FM
+        return out
 
 
 class FlipyFlopy(nn.Module):
@@ -316,7 +291,9 @@ class FlipyFlopy(nn.Module):
                  CEembed=False,
                  CEembed_units=256,
                  learn_ffn_embed=True,
-                 pos_type='learned'
+                 pos_type='learned',
+                 coefs=4,
+                 knots=[6, 13, 20, 27, 34, 41, 48, 55]
                  ):
         """
         Talking heads (Making Flippy Floppy) attention model
@@ -350,6 +327,8 @@ class FlipyFlopy(nn.Module):
         
         self.mask = mask
         self.out_dim = out_dim
+        self.num_coefs = coefs
+        self.knots = knots
         
         self.embed = nn.Parameter(initEmb((in_ch, embedsz)), requires_grad=True)
         if pos_type=='learned':
@@ -394,7 +373,7 @@ class FlipyFlopy(nn.Module):
         
         #self.final = nn.Sequential(nn.Linear(filtlast, filtlast), nn.ReLU(), nn.Linear(filtlast, out_dim*4), nn.Sigmoid())
         #self.final = nn.Sequential(nn.Linear(filtlast, out_dim*4), nn.Tanh())
-        self.final = nn.Sequential(nn.Linear(filtlast, out_dim*4), nn.Sigmoid())
+        self.final = nn.Sequential(nn.Linear(filtlast, out_dim*self.num_coefs), nn.Sigmoid())
         
         ########################
         
@@ -450,42 +429,18 @@ class FlipyFlopy(nn.Module):
                        if m.requires_grad==True]))
         else:
             print(sum([np.prod(m.shape) for m in list(self.parameters())]))
-    def forward(self, inp, test=True):
-        """
-        Forward call for model
-
-        Parameters
-        ----------
-        inp : List of input embedding tensors. 
-              inp[0].shape = (bs, in_ch, seq_len)
-              optional charge vector -> inp[1].shape = (bs,)
-              optional energy vector -> inp[2].shape = (bs,)
-        test : Set to True if you want to calculate and return all intermediate
-               activation tensor statistics throughout depth of network.
-
-        Returns
-        -------
-        1D mass spectrum intensities for fragments in the dictionary.
-        
-        lst : Return 'blocks' number of tuples of activation statistics.
-        lst2 : Return intermdiate attention maps for plotting (perhaps)
-
-        """
+            
+    def forward_coef(self, inp):
         # inp = (inp, inpch, inpev)
         if self.CEembed:
             # unpack input
-            [inp, inpch, inpce] = inp
+            [inp, inpch, _] = inp
             if len(inpch.shape) == 0:
                 inpch = inpch.unsqueeze(-1)
-                inpce = inpce.unsqueeze(-1)
                 
             ch_embed = nn.functional.silu(
                 self.denseCH(self.embedCE(inpch, self.cesz, 10))
             )
-            ce_embed = nn.functional.silu(
-                self.denseCE(self.embedCE(inpce, self.cesz, 100))
-            )   
-            #embed = self.postcat(torch.cat([ch_embed,ce_embed],-1))
             embed = self.postcat(torch.cat([ch_embed],-1))
         else:
             inp = inp[0]
@@ -500,28 +455,46 @@ class FlipyFlopy(nn.Module):
         out = torch.einsum('abc,bd->adc', inp, self.embed) # bs, embedsz, seq_len
         out += self.pos
         out = self.embed_norm(out)
-        lst = []
-        lst2 = []
         for layer in self.main:
-            out, out2, FM = layer(out, embed, mask, test)
-            if test:
-                lst.append(out2)
-                lst2.append(FM)
+            out = layer(out, embed, mask)
         out = torch.relu(self.ProjNorm(torch.einsum('abc,bd->adc', out, self.Proj))) # bs, filtlast, seq_len
 
-        inpce = inpce.unsqueeze(1).repeat(1, self.out_dim)
-        # create knots
-        #knots = torch.linspace(15,55,9, device=torch.device('cuda')).unsqueeze(0).unsqueeze(2).repeat(inp.shape[0], 1, self.out_dim)
-        #knots = torch.linspace(15-(60/8), 45+(60/8), 9, device=torch.device('cuda')).unsqueeze(0).unsqueeze(2).repeat(inp.shape[0], 1, self.out_dim) # [15-(60/8), 45+(60/8)
-        #knots = torch.linspace(15-(60/7), 45+(60/7), 8, device=torch.device('cuda')).unsqueeze(0).unsqueeze(2).repeat(inp.shape[0], 1, self.out_dim)
-        knots = torch.tensor([6, 13, 20, 27, 34, 41, 48, 55], device=torch.device('cuda')).unsqueeze(0).unsqueeze(2).repeat(inp.shape[0], 1, self.out_dim)
         # get b-spline coefficients
-        poly_coef = torch.reshape(self.final(out.transpose(-1,-2)).mean(dim=1), (inp.shape[0], 4, self.out_dim))
+        poly_coef = torch.reshape(self.final(out.transpose(-1,-2)).mean(dim=1), (inp.shape[0], self.num_coefs, self.out_dim))
+        
+        return poly_coef
+        
+    def forward(self, inp):
+        """
+        Forward call for model
+
+        Parameters
+        ----------
+        inp : List of input embedding tensors. 
+              inp[0].shape = (bs, in_ch, seq_len)
+              optional charge vector -> inp[1].shape = (bs,)
+              optional energy vector -> inp[2].shape = (bs,)
+
+        Returns
+        -------
+        1D mass spectrum intensities for fragments in the dictionary.
+        
+        lst : Return 'blocks' number of tuples of activation statistics.
+        lst2 : Return intermdiate attention maps for plotting (perhaps)
+
+        """
+        
+        poly_coef = self.forward_coef(inp)
+        
+        [inp, _, inpce] = inp
+        # create knots
+        knots = torch.tensor(self.knots, device=inp.device).unsqueeze(0).unsqueeze(2).repeat(inp.shape[0], 1, self.out_dim)
+        
+        if len(inpce.shape) == 0:
+            inpce = inpce.unsqueeze(-1)
+        inpce = inpce.unsqueeze(1).repeat(1, self.out_dim)
 
         out = bspline(inpce, knots, poly_coef, 3)
-        #min_vals = getMin(inpce, knots, poly_coef, 3)
-        #out -= min_vals
-        #out = torch.where(out > 0, out, 0.0)
         
         return out
 
@@ -533,12 +506,20 @@ class FlipyFlopy(nn.Module):
 # t = knots
 def B(x, k, i, t):
     out = torch.zeros_like(x)
+    
     if k == 0:
         out = torch.where(torch.logical_and(t[:,i,:].squeeze(1) <= x, x < t[:,i+1,:].squeeze(1)), 1.0, 0.0)
         return out
 
-    c1 = (x - t[:,i,:].squeeze(1))/(t[:,i+k,:].squeeze(1) - t[:,i,:].squeeze(1)) * B(x, k-1, i, t)
-    c2 = (t[:,i+k+1,:].squeeze(1) - x)/(t[:,i+k+1,:].squeeze(1) - t[:,i+1,:].squeeze(1)) * B(x, k-1, i+1, t)
+    if t[0, i+k, 0] == t[0, i, 0]:
+        c1 = torch.zeros_like(x)
+    else:
+        c1 = (x - t[:,i,:].squeeze(1))/(t[:,i+k,:].squeeze(1) - t[:,i,:].squeeze(1)) * B(x, k-1, i, t)
+        
+    if t[0, i+k+1, 0] == t[0, i+1, 0]:
+        c2 = torch.zeros_like(x)
+    else:
+        c2 = (t[:,i+k+1,:].squeeze(1) - x)/(t[:,i+k+1,:].squeeze(1) - t[:,i+1,:].squeeze(1)) * B(x, k-1, i+1, t)
     
     return c1 + c2
 
@@ -554,9 +535,3 @@ def bspline(x, t, c, k):
     return out
 
 
-def getMin(x, t, c, k):
-    min_vals = torch.zeros_like(x)
-    for xx in range(20,41):
-        x_i = torch.ones_like(x) * xx
-        min_vals = torch.min(min_vals, bspline(x_i, t, c, k))[0]
-    return min_vals

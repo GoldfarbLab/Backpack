@@ -2,15 +2,12 @@
 #BSUB -g /d.goldfarb/compute
 #BSUB -G compute-d.goldfarb
 #BSUB -a 'docker(dennisgoldfarb/pytorch_ris:lightning)'
-#BSUB -J predict[1-10]
+#BSUB -J predict[1,2,599,646,647,678,679,680,790,791,792,793,933,935,936,937,938,940,941,957,997,998,999]
 #BSUB -q general
-#BSUB -R 'gpuhost rusage[mem=12GB]'
-#BSUB -gpu 'num=1:gmem=30G:gmodel=NVIDIAA100_SXM4_80GB'
 #BSUB -W 6000
 #BSUB -M 12G
-
-#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/predict.%J.out.txt
-#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/predict.%J.err.txt
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/predict.%J.%I.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/predict.%J.%I.err.txt
 
 #/opt/conda/bin/python
-/bin/python3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/predict.py $LSB_JOBINDEX 10
+/bin/python3 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/predict.py $LSB_JOBINDEX 1000

@@ -52,6 +52,8 @@ parser.add_argument("--analyzer", default="FTMS")
 parser.add_argument("--reaction", default="hcd")
 parser.add_argument("--protein_acc_include", default="", type=str)
 parser.add_argument("--polarity", default="+", type=str)
+parser.add_argument("--filterRT", default=1, type=int)
+parser.add_argument("--quad", type=str)
 args = parser.parse_args()
 
 #################################################################################
@@ -78,30 +80,31 @@ data = data[data["hyperscore"] >= args.hyperscore]
 
 print("Post score filter:", len(data.index))
 
-chrono = pd.read_csv(args.chrono_path, sep="\t").drop(['CodedPeptideSeq', 'PeptideLength'], axis=1)
+if args.filterRT == 1:
+    chrono = pd.read_csv(args.chrono_path, sep="\t").drop(['CodedPeptideSeq', 'PeptideLength'], axis=1)
 
-data = data.merge(chrono, left_on='peptide', right_on='PeptideModSeq', how='inner')
+    data = data.merge(chrono, left_on='peptide', right_on='PeptideModSeq', how='inner')
 
-print("Post inner join:", len(data.index))
+    print("Post inner join:", len(data.index))
 
-data = data.sort_values('rt')
-y_points = np.array(data['Pred_HI'])
-x_points = np.array(data['rt'])
+    data = data.sort_values('rt')
+    y_points = np.array(data['Pred_HI'])
+    x_points = np.array(data['rt'])
 
-model = interpolate.LSQUnivariateSpline(x_points, y_points, np.linspace(np.min(x_points), np.max(x_points), 7)[1:6], k=3)
-deviations = np.abs(y_points - model(x_points))
-mad = np.median(deviations)
+    model = interpolate.LSQUnivariateSpline(x_points, y_points, np.linspace(np.min(x_points), np.max(x_points), 7)[1:6], k=3)
+    deviations = np.abs(y_points - model(x_points))
+    mad = np.median(deviations)
 
-x_points = x_points[deviations <= 10*mad]
-y_points = y_points[deviations <= 10*mad]
+    x_points = x_points[deviations <= 10*mad]
+    y_points = y_points[deviations <= 10*mad]
 
-model = interpolate.LSQUnivariateSpline(x_points, y_points, np.linspace(np.min(x_points), np.max(x_points), 7)[1:6], k=3)
+    model = interpolate.LSQUnivariateSpline(x_points, y_points, np.linspace(np.min(x_points), np.max(x_points), 7)[1:6], k=3)
 
-deviations = np.abs(y_points - model(x_points))
-mad = np.median(deviations)
+    deviations = np.abs(y_points - model(x_points))
+    mad = np.median(deviations)
 
-print("Post RT filter:", len(data.index))
-data = data[np.abs(model(data['rt']) - data['Pred_HI']) <= 3*mad]
+    print("Post RT filter:", len(data.index))
+    data = data[np.abs(model(data['rt']) - data['Pred_HI']) <= 3*mad]
 
 data.to_csv(args.sage_results + ".filtered", sep="\t", index=False, quoting=csv.QUOTE_NONE)
 
@@ -114,6 +117,12 @@ rawFile.SelectInstrument(Device.MS, 1)
 rawFileMetaData = raw_utils.getFileMetaData(rawFile)
 
 print(rawFileMetaData.model, rawFileMetaData.instrument_id, rawFileMetaData.created_date)
+
+if args.quad:
+    quad_models = pd.read_csv(args.quad, sep="\t")
+    iso_cal_date = raw_utils.extractIsoCal(rawFile)
+    quad_model = quad_models[quad_models.cal == iso_cal_date].iloc[0]
+    print("quad:", quad_model)
 
 annotator = annotator.annotator()
 with open(os.path.join(args.out_path, Path(os.path.basename(args.raw_path)).resolve().stem + ".msp"), "w") as outfile:
@@ -130,7 +139,9 @@ with open(os.path.join(args.out_path, Path(os.path.basename(args.raw_path)).reso
         
         # Get the ionizationMode, MS2 precursor mass, collision energy, and isolation width for each scan
         peptide = utils.pepFromSage(row["peptide"])
-        scan_metaData = raw_utils.getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, args.ppm_tol)
+        scan_metaData = raw_utils.getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, args.ppm_tol, quad_model=quad_model)
+        
+        
         
         if scan_metaData is None: print(scan_id, "no meta data"); continue
         if scan_metaData.reactionType != args.reaction: print(scan_id, "wrong reaction"); continue

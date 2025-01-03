@@ -1,0 +1,17 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/pytorch_ris:lightning)'
+#BSUB -J train[4-8]
+#BSUB -q general
+#BSUB -R 'gpuhost rusage[mem=40GB] '
+#BSUB -gpu 'num=1:gmem=10G:gmodel=NVIDIAA100_SXM4_40GB'
+#BSUB -n 8
+#BSUB -W 20000
+#BSUB -M 40G
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/train.%J.%I.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/train.%J.%I.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+
+/bin/python3 ${SRC_PATH}/python/train.py /storage1/fs1/d.goldfarb/Active/Projects/Backpack/config/train/data${LSB_JOBINDEX}.yaml

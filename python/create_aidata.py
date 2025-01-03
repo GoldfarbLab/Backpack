@@ -12,7 +12,7 @@ with open(os.path.join(os.path.dirname(__file__), "../config/mods.yaml"), 'r') a
     mod_config = yaml.safe_load(stream)
 with open(os.path.join(os.path.dirname(__file__), "../config/data.yaml"), 'r') as stream:
     config = yaml.safe_load(stream)
-D = utils_unispec.DicObj(config['ion_dictionary_path'], config['seq_len'], config['chlim'])
+D = utils_unispec.DicObj(config['ion_dictionary_path'], mod_config, config['seq_len'], config['chlim'])
 #################################################################################
 
 def rename_mods(pep, mod_string):
@@ -89,6 +89,7 @@ def processFile(files, dataset, mask_ppm_tol=50):
                 elif len(annot_list.entries) > 1:
                     # valid ambig annot
                     for annot in annot_list.entries:
+                        annot_name = annot.getName()
                         lines.append('%s %s %.4f %.5f %s\n'%(annot.getIsoName(), str(D.ion2index[annot_name]), peak.getMZ(), norm_int, "5"))
                     #num_valid += 1
                 else:
@@ -100,6 +101,7 @@ def processFile(files, dataset, mask_ppm_tol=50):
                 
                 weight = np.sqrt(scan.metaData.purity * scan.metaData.rawOvFtT)
                 label_outfile.write(rename_mods(pep, scan.name) + "_%.2f"%(weight) + "\n")
+                #label_outfile.write(scan.name + "_%.2f"%(weight) + "\n")
                 # write position
                 position_outfile.write("%d "%dataset_outfile.tell())
                 # write dataset

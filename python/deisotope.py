@@ -9,6 +9,7 @@ import argparse
 from collections import defaultdict
 from scipy.optimize import nnls
 import annotation
+import copy
 
 parser = argparse.ArgumentParser(
                     prog='MSP Deisotoper',
@@ -35,9 +36,6 @@ def processFile(file, write_unannotated):
             
             
 def deisotope(scan):
-    #scan.normalizeToBasePeak()
-    #scan.normalizeToTotalAnnotated()
-    #scan.normalizeToTotal()
     scan.normalizeToTotalAnnotated(doLOD = True)
     # create dictionary of base_ion2isotopes_index (observed)
     mzs = []
@@ -58,7 +56,8 @@ def deisotope(scan):
             annotations.append(annotation.annotation_list([]))
             masks.append(0)
         else:
-            for annot in annot_list.entries:    
+            for annot in annot_list.entries:
+                annot = copy.deepcopy(annot)
                 base_ion2isotope[annot.getName()].append([annot.isotope, scan.spectrum[i].getIntensity()])
                 annot.isotope=0
                 if annot.getName() not in name2annot:
@@ -150,30 +149,118 @@ def deisotope(scan):
             #masks.append(3)
             continue
         
-    # FOR NCE CALIBRATION ONLY
+    # Deconvolve ambiguous
     for ambig_group in ambig_annot_group:
-        masks.append(5)
-        mzs.append(name2annot[list(ambig_group)[0]].getMZ(scan.peptide))
-        annotations.append(annotation.annotation_list([name2annot[name] for name in ambig_group]))
-
-        peak_indices = set()
+        ambig_group = list(ambig_group)
+        name2iso_peak = defaultdict(list)
         
+        # check if perfect overlap between any annotations (same isotope)
         for i, annot_list in enumerate(scan.annotations):
             for annot in annot_list.entries:
                 for annot_name in ambig_group:
                     if annot_name == annot.getName():
-                        peak_indices.add(i)
-                        break
+                        name2iso_peak[annot_name].append([annot.isotope, i])
+        
+        identical = False              
+        for name1 in name2iso_peak:
+            for name2 in name2iso_peak:
+                if name1 == name2: continue
+                if name2iso_peak[name1] == name2iso_peak[name2]:
+                    identical = True
+                    break
+            if identical: break
+            
+        
+        if identical:
+            # give ambig mask to sum of all peaks
+            masks.append(5)
+            mzs.append(name2annot[list(ambig_group)[0]].getMZ(scan.peptide))
+            annotations.append(annotation.annotation_list([name2annot[name] for name in ambig_group]))
+
+            peak_indices = set()
+            
+            for i, annot_list in enumerate(scan.annotations):
+                for annot in annot_list.entries:
+                    for annot_name in ambig_group:
+                        if annot_name == annot.getName():
+                            peak_indices.add(i)
+                            break
                     
-        intensity = sum(scan.spectrum[i].getIntensity() for i in peak_indices)
-        intensities.append(intensity)
+            intensity = sum(scan.spectrum[i].getIntensity() for i in peak_indices)
+            intensities.append(intensity)
+        
+        else:
+            # deconvolve
+            max_iso = scan.getMaxIsotope()
+            output_size = len(ambig_group) * (max_iso+1)
+            b = np.zeros(output_size)
+            
+            print(ambig_group, max_iso)
+            # populate the front with annotated ambig peaks
+            b_i = 0
+            name2iso_index = defaultdict(list)
+            for i, annot_list in enumerate(scan.annotations):
+                found = False
+                for annot in annot_list.entries:
+                    for annot_name in ambig_group:
+                        if annot_name == annot.getName():
+                            name2iso_index[annot_name].append([annot.isotope, b_i])
+                            if not found:
+                                print(scan.metaData.scanID, annot_name, annot.isotope, b_i)
+                                b[b_i] = scan.spectrum[i].getIntensity()
+                                found = True
+                                
+                if found:
+                    b_i += 1
+                    
+            # create matrix A
+            A = np.zeros((output_size, len(ambig_group)))
+            
+            # populate template matrix
+            next_empty_index = b_i
+            for ion_index, base_ion in enumerate(ambig_group):
+                # compute isotope distribution
+                iso_dist = name2annot[base_ion].getTheoreticalIsotopeDistribution(scan.peptide, scan.metaData.iso2eff)
+                
+                for iso, prob in enumerate(iso_dist):
+                    isotope_match_index = -1
+                    for isotope_match in name2iso_index[base_ion]:
+                        if isotope_match[0] == iso:
+                            isotope_match_index = isotope_match[1]
+                    if isotope_match_index != -1:
+                        A[isotope_match_index, ion_index] = prob
+                    else:
+                        A[next_empty_index, ion_index] = prob
+                        next_empty_index+=1
+            
+            # solve it
+            total_signal = b.sum()
+            b /= b.max()
+            x = nnls(A, b, maxiter=10000, atol=1e-5)
+            
+            x_perc = x[0] / x[0].sum()
+            x_sig = x_perc * total_signal
+            
+            if x[1] <= 0.5:
+                # output deconvolved values
+                for i, annot_name in enumerate(ambig_group):
+                    annot = copy.deepcopy(name2annot[annot_name])
+                    annot.isotope = 0
+                    mz = annot.getMZ(scan.peptide)
+                    masks.append(0)
+                    mzs.append(mz)
+                    annotations.append(annotation.annotation_list([annot]))
+                    intensities.append(x_sig[i])
+                
+            else:
+                # output masked values
+                masks.append(5)
+                mzs.append(name2annot[list(ambig_group)[0]].getMZ(scan.peptide))
+                annotations.append(annotation.annotation_list([name2annot[name] for name in ambig_group]))
+                intensities.append(total_signal)
+
         
 
-    #for [mz, intensity] in ambig_peaks:
-    #    mzs.append(mz)
-    #    intensities.append(intensity)
-    #    annotations.append(annotation.annotation_list([]))
-    #    masks.append(3)
 
     scan.spectrum.set_peaks([mzs, intensities])
     scan.annotations = annotations

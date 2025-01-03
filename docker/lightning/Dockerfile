@@ -19,4 +19,8 @@ RUN pip install numpy==1.26.0 \
     scikit-learn \
     scikit-image \
     tqdm \
-    lightning
+    lightning \ 
+    onnx \
+    onnxruntime \
+    olive-ai[gpu,finetune] \
+    tabulate \

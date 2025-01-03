@@ -29,8 +29,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument("msp_path")
 parser.add_argument("raw_path")
 parser.add_argument("out_path")
-parser.add_argument("--lumos_model", default="/storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/QE_to_lumos_poly_noRoot_mean.tsv", type=str)
-parser.add_argument("--spline_model", default="/storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/spline_fits_sqrt.tsv", type=str)
+parser.add_argument("--lumos_model", default="/storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/QE_to_lumos_poly_quad.tsv", type=str)
+parser.add_argument("--spline_model", default="/storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/spline_fits_sqrt_quad.tsv", type=str)
 args = parser.parse_args()
 
 class QE2lumos_models:

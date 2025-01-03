@@ -28,7 +28,7 @@ mkdir -p $SCRIPT_PATH
 mv ./$CONFIG_FILE $SCRIPT_PATH/config.sh
 
 # Update scripts with dataset specific parameters
-declare -a scripts=("convert_raw.bsub" "sage.bsub" "annotate.bsub" "deisotope.bsub" "NCE_align.bsub" "consolidate_NCEs.bsub" "pipeline2.sh" "update_NCEs.bsub" "chronologer.bsub" "split_indiv.bsub" "merge_ion_dict.bsub" "filter.bsub" "merge_xv.bsub" "create_aidata.bsub" "train.bsub" "msp2tsv.bsub" "interpolate.bsub")
+declare -a scripts=("convert_raw.bsub" "sage.bsub" "annotate.bsub" "deisotope.bsub" "NCE_align.bsub" "consolidate_NCEs.bsub" "pipeline2.sh" "update_NCEs.bsub" "chronologer.bsub" "split_indiv.bsub" "merge_ion_dict.bsub" "filter.bsub" "merge_xv.bsub" "create_aidata.bsub" "train.bsub" "msp2tsv.bsub" "interpolate.bsub" "quad_fit.bsub" "merge_quad.bsub" "train_array.bsub" "export2onnx.bsub")
 
 for val in ${scripts[@]}; do
     sed "s+LSF_SCRIPT_PATH+$SCRIPT_PATH/+g" < $val > $SCRIPT_PATH/$val

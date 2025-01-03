@@ -5,7 +5,8 @@ from similarity import CS_scans
 import csv
 
 #data_path = "/Users/dennisgoldfarb/Downloads/procal.msp"
-data_path = "/Users/dennisgoldfarb/Downloads/ProCal/merged/procal.msp.deisotoped"
+#data_path = "/Users/dennisgoldfarb/Downloads/ProCal/merged/procal.msp.deisotoped"
+data_path = "/Users/dennisgoldfarb/Downloads/ProCal/v2/procal.msp"
 
 pep2z2NCE2scans = defaultdict(dict)
 
@@ -28,7 +29,7 @@ for i, scan in enumerate(msp.read_msp_file(data_path)):
     
 
 # Compute pairwise similarity
-with open("/Users/dennisgoldfarb/Downloads/procal_traces_ambig.tsv", 'w') as csvfile:
+with open("/Users/dennisgoldfarb/Downloads/ProCal/v2/procal_traces_ambig.tsv", 'w') as csvfile:
     writer = csv.writer(csvfile, delimiter="\t")
     writer.writerow(["pep", "z", "NCE", "scan", "frag", "intensity", "rawOvFtT", "purity"])
     for pep in pep2z2NCE2scans:

@@ -29,6 +29,8 @@ class AltimeterDataModule(LightningDataModule):
             self.dataset_val = self.getAltimeterDataset("val")
         elif stage == "test":
             self.dataset_test = self.getAltimeterDataset("test")
+        elif stage == "predict":
+            self.dataset_test = self.getAltimeterDataset("test")
 
     def train_dataloader(self):
         return DataLoader(self.dataset_train, batch_size=self.config['batch_size'], shuffle=True, num_workers=self.config['num_workers'])
@@ -40,8 +42,7 @@ class AltimeterDataModule(LightningDataModule):
         return DataLoader(self.dataset_test, batch_size=self.config['test_batch_size'], shuffle=False, num_workers=self.config['num_workers'])
     
     def predict_dataloader(self):
-        pass
-        #return DataLoader(self.mnist_predict, batch_size=self.batch_size)
+        return DataLoader(self.dataset_test, batch_size=self.config['test_batch_size'], shuffle=False, num_workers=1)
 
     def teardown(self, stage: str):
         # Used to clean-up when the run is finished
@@ -224,9 +225,10 @@ class AltimeterDataset(Dataset):
 
         # populate with predicted mono isotopes
         for i, ion_total_intensity in enumerate(valid_pred):
-            if valid_pred_ions[i][0] == "p": ion_charge = charge
-            else:
+            if "^" in valid_pred_ions[i]:
                 ion_charge = int(valid_pred_ions[i].split("^")[-1])
+            else:
+                ion_charge = 1
             mono_mz = calcMZ(seq, ion_charge, mod, valid_pred_ions[i])
  
             pred_full[i] = ion_total_intensity
@@ -255,36 +257,30 @@ class AltimeterDataset(Dataset):
         for ion in ions:
             annot = annotation.from_entry(ion, charge)
             
-            if ion[0] == "p": ion_charge = charge
-            else:
-                ion_charge = int(ion.split("^")[-1])
-            ext = (len(seq) if ion[0]=='p' else 
-                   (int(ion[1:].split('-')[0].split('+')[0].split('^')[0])
-                    if (ion[0] in ['a','b','y']) else 0)
-                   )
+            ion_charge = annot.z
+            ion_type = annot.getType()
+            ext = annot.length if ion_type != "p" else len(seq)
+           
             a = True
             # Do not include immonium ions for amino acids missing from the sequence
-            if ion[0] == "I" and "Int" not in ion:
+            if ion_type == "Imm":
                 a = False
-                for aa in seq:
-                    if ion[0:3] in annotator.IMMONIUM_IONS[aa]:
-                        a = True
-                if 'Carbamidomethyl' in mods and ion[0:3] in ["ICCAMA", "ICCAMB", "ICCAMC"]:
+                if annot.getName()[1] in seq:
                     a = True
-                if "Oxidation" in mods and ion[0:3] == "IMOC":
-                    a = True
-            if "Int" in ion:
-                if ion[4].isdigit():
-                    [start,ext] = [
-                        int(j) for j in 
-                        ion[4:].split("^")[0].split('+')[0].split('-')[0].split('>')
-                    ]
-                    # Do not write if the internal extends beyond length of peptide-2
-                    if (start+ext)>=(len(seq)-2): a = False
-                else:
-                    subseq = ion[4:].split("^")[0].split('+')[0].split('-')[0]
-                    if subseq not in seq:
+                if "IC(Carbamidomethyl)" in ion:
+                    if 'Carbamidomethyl' not in mods:
                         a = False
+                if "IM(Oxidation)" in ion:
+                    if "Oxidation" not in mods:
+                        a = False
+                        
+            if "m" == ion[0]:
+                [start,ext] = [
+                    int(j) for j in 
+                    ion[1:].split("^")[0].split('+')[0].split('-')[0].split(':')
+                ]
+                # Do not write if the internal extends beyond length of peptide-2
+                if (start+ext)>=(len(seq)-2): a = False
             # The precursor ion must be the same charge
             #if ion[0] == 'p' and ion_charge != charge:
             #    a = False
@@ -325,7 +321,6 @@ class AltimeterDataset(Dataset):
                 a = False
             
             if a:
-                annot = annotation.from_entry(ion, ion_charge)
                 pep = createPeptide(seq, mods)
                 ec = annot.getEmpiricalFormula(pep).getElementalComposition()
                 
@@ -337,6 +332,28 @@ class AltimeterDataset(Dataset):
 
         return np.array(filt)
     
+    def getModCount(self, seq, ion, ext, mod_target, mods):
+        count = 0
+        if ion[0] == 'b':
+            for pos, aa, mod_type in mods:
+                if mod_type == mod_target and pos < ext:
+                    count+=1
+        elif ion[0] == 'y':
+             for pos, aa, mod_type in mods:
+                if mod_type == mod_target and pos >= len(seq) - ext:
+                    count+=1
+        elif ion.startswith("m"):
+            if ion[1].isdigit():
+                [start,ext] = [
+                        int(j) for j in 
+                        ion[1:].split("^")[0].split('+')[0].split('-')[0].split(':')
+                    ]
+                for pos, aa, mod_type in mods:
+                    if mod_type == mod_target and pos >= start and pos < start + ext:
+                        count+=1
+            else:
+                count = ion.count(mod_target)
+        return count
     
     
 

@@ -1,0 +1,27 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(nvcr.io/nvidia/tensorrt:24.10-py3)'
+#BSUB -J tensorrt
+#BSUB -q general
+#BSUB -R 'gpuhost rusage[mem=40GB]'
+#BSUB -gpu 'num=1:gmem=10G:gmodel=NVIDIAA100_SXM4_80GB'
+#BSUB -n 1
+#BSUB -W 20000
+#BSUB -M 1G
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/tensorrt.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/tensorrt.%J.err.txt
+
+/opt/tensorrt/bin/trtexec --minShapes=inp:1x23x40,inpch:1x1 --optShapes=inp:1000x23x40,inpch:1000x1 --maxShapes=inp:1000x23x40,inpch:1000x1  --shapes=inp:1000x23x40,inpch:1000x1 --onnx=/storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_13M_20241218.pt --saveEngine=/storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_13M_20241218.trt
+
+/opt/tensorrt/bin/trtexec --minShapes=inp:1x23x40,inpch:1x1 --optShapes=inp:1000x23x40,inpch:1000x1 --maxShapes=inp:1000x23x40,inpch:1000x1  --shapes=inp:1000x23x40,inpch:1000x1 --onnx=/storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_13M_20241218.pt --saveEngine=/storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_13M_20241218_fp16.trt --fp16
+
+/opt/tensorrt/bin/trtexec --minShapes=inp:1x23x40,inpch:1x1 --optShapes=inp:1000x23x40,inpch:1000x1 --maxShapes=inp:1000x23x40,inpch:1000x1  --shapes=inp:1000x23x40,inpch:1000x1 --onnx=/storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_13M_20241218.pt --saveEngine=/storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_13M_20241218_fp16_int8.trt --fp16 --int8
+
+/opt/tensorrt/bin/trtexec --minShapes=inp:1x23x40,inpch:1x1 --optShapes=inp:1000x23x40,inpch:1000x1 --maxShapes=inp:1000x23x40,inpch:1000x1  --shapes=inp:1000x23x40,inpch:1000x1 --onnx=/storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_13M_20241218.pt --saveEngine=/storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_13M_20241218_bf16.trt --bf16
+
+/opt/tensorrt/bin/trtexec --minShapes=inp:1x23x40,inpch:1x1 --optShapes=inp:1000x23x40,inpch:1000x1 --maxShapes=inp:1000x23x40,inpch:1000x1  --shapes=inp:1000x23x40,inpch:1000x1 --onnx=/storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_13M_20241218.pt --saveEngine=/storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_13M_20241218_fp8.trt --fp8
+
+# /storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_splines.pt
+
+# --fp16 --int8

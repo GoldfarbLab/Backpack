@@ -33,4 +33,4 @@ print("y11^6" in match2stats)
 with open(args.out_path, 'w') as outfile:
     for i, scan in enumerate(msp.read_msp_file(args.msp_path)):
         scan.filterAnnotations(valid_ions, False, False)
-        scan.writeScan(outfile, True, int_prec=5)
+        scan.writeScan(outfile, False, int_prec=5)

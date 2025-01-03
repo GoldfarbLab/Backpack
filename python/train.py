@@ -8,7 +8,6 @@ import csv
 import torch
 import wandb
 from altimeter_dataset import AltimeterDataModule, filter_by_scan_range, match, norm_base_peak
-from models_poly import FlipyFlopy
 from lightning_model import LitFlipyFlopy
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
@@ -23,12 +22,16 @@ torch.set_float32_matmul_precision('medium')
 ############################### Configuration #################################
 ###############################################################################
 
+if len(sys.argv) == 2:
+    data_yaml_path = sys.argv[1]
+else:
+    data_yaml_path = os.path.join(os.path.dirname(__file__), "../config/data.yaml")
+
 with open(os.path.join(os.path.dirname(__file__), "../config/mods.yaml"), 'r') as stream:
     mod_config = yaml.safe_load(stream)
-with open(os.path.join(os.path.dirname(__file__), "../config/data.yaml"), 'r') as stream:
+with open(data_yaml_path, 'r') as stream:
     config = yaml.safe_load(stream)
-D = utils_unispec.DicObj(config['ion_dictionary_path'], config['seq_len'], config['chlim'])
-
+D = utils_unispec.DicObj(config['ion_dictionary_path'], mod_config, config['seq_len'], config['chlim'])
 
 saved_model_path = os.path.join(config['base_path'], config['saved_model_path'])
 
@@ -50,7 +53,7 @@ else:
 ############################ Weights and Biases ###############################
 ###############################################################################
 
-wandb_logger = WandbLogger(project="Altimeter", config = config, log_model=False)
+wandb_logger = WandbLogger(project="Altimeter", config = config, log_model=False, save_dir="/scratch1/fs1/d.goldfarb/Backpack/")
 
 ###############################################################################
 ################################## Model ######################################
@@ -106,15 +109,22 @@ class MirrorPlotCallback(L.Callback):
         
         trainer.model.eval()
         with torch.no_grad():
+            
+            
             sample[0] = sample[0].unsqueeze(0)
             pred = trainer.model(sample)
-            pred = pred.squeeze(0)
-            pred, mzpred, ionspred = val_dataset.ConvertToPredictedSpectrum(pred.cpu().numpy(), seq, mod, charge)
+            pred = pred.squeeze(0).cpu()
+
+            pred, mzpred, ionspred = val_dataset.ConvertToPredictedSpectrum(pred.numpy(), seq, mod, charge)
             self.mirrorplot(entry, pred, mzpred, ionspred, pl_module, maxnorm=True, save=True)
-            self.checkSmoothness(trainer, pl_module, val_dataset)
+            
+            sample = val_dataset[0]
+            pred_ions = np.array([val_dataset.D.index2ion[ind] for ind in range(len(val_dataset.D.index2ion))])
+            self.smoothplot(trainer, pl_module, sample['targ'], sample['samples'], pred_ions)
+            
+            #self.checkSmoothness(trainer, pl_module, val_dataset, ionspred)
             
     def checkSmoothness(self, trainer, pl_module, val_dataset):
-        lcs = []
         # get first batch
         samples = [val_dataset[i] for i in range(1)]
         # get unique seq+mods+z
@@ -137,37 +147,41 @@ class MirrorPlotCallback(L.Callback):
                 
                 #pred = pred - pred.min(dim=0, keepdim=True)[0]
                 #pred = pred / pred.max(dim=0, keepdim=True)[0]
-                #lcs.extend(self.getLipschitzConstant(pred))
                 self.smoothplot(pl_module, pred)
                 
-        #lcs = np.array(lcs)
-        #pl_module.logger.experiment.log({"val_lc_mean": np.mean(lcs)})
     
-    def getLipschitzConstant(sel, pred):
-        lcs = []
-        for frag_i in range(pred.shape[1]):
-            max_slope = 0
-            for i in range(pred.shape[0]):
-                for j in range(i+1, pred.shape[0]):
-                    NCE_dist = j-i
-                    signal_dist = torch.abs(pred[i,frag_i] - pred[j,frag_i])
-                    max_slope = max(max_slope, signal_dist / NCE_dist)
-            lcs.append(max_slope)
-        return lcs
     
-    def smoothplot(self, pl_module, pred):
+    def smoothplot(self, trainer, pl_module, targ, sample, ionspred):
+        min_NCE = 20
+        max_NCE = 40
+        num_steps = 201
+        sample[0] = sample[0].unsqueeze(0).repeat(num_steps,1,1)
+        sample[1] = sample[1].repeat(num_steps)
+        sample[2] = torch.linspace(min_NCE, max_NCE, steps=num_steps)
+        
+        pred = trainer.model(sample)
+        pred = pred.cpu()
+        # filter for frags where targ > 0
+        pred = torch.where(targ>0, pred, 0.0)
+        non_empty_mask = pred.abs().sum(dim=0).bool()
+        pred = pred[:,non_empty_mask]
+        ionspred = ionspred[non_empty_mask]
+        
         num_frags = pred.shape[1]
         num_cols = int(np.ceil(np.sqrt(num_frags)))
         num_rows = num_cols
+        
         plt.close('all')
         fig, axs = plt.subplots(num_rows, num_cols)
+        fig.tight_layout()
         
-        NCEs = np.linspace(20, 40, num=201)
+        NCEs = np.linspace(min_NCE, max_NCE, num=num_steps)
         
         for frag_i in range(pred.shape[1]):
             col = frag_i % num_cols
             row = int(frag_i / num_cols)
             axs[row, col].plot(NCEs, pred[:, frag_i].numpy())
+            axs[row, col].set_title(ionspred[frag_i])
             
         pl_module.logger.experiment.log({"smoothplot": wandb.Image(plt)})
         plt.close()
@@ -309,7 +323,7 @@ class MirrorPlotCallback(L.Callback):
 ###############################################################################
 ########################## Training and testing ###############################
 ###############################################################################
-stopping_criteria = EarlyStopping(monitor="val_SA_mean", mode="max", min_delta=0.00, patience=5)
+stopping_criteria = EarlyStopping(monitor="val_SA_mean", mode="max", min_delta=0.00, patience=0) #5
 checkpoint_callback = ModelCheckpoint(dirpath=saved_model_path, save_top_k=1, monitor="val_SA_mean", mode="max", every_n_epochs=1)
 mirrorplot_callback = MirrorPlotCallback()
 
@@ -319,11 +333,14 @@ trainer = L.Trainer(default_root_dir=saved_model_path,
                     callbacks=[stopping_criteria, checkpoint_callback, mirrorplot_callback],
                     strategy="ddp_find_unused_parameters_true", #ddp
                     max_epochs=config['epochs'],
-                    #limit_train_batches=1000, 
-                    #limit_val_batches=1000
+                    #limit_train_batches=1, 
+                    #limit_val_batches=1
                     )
 
+checkpoint_path = os.path.join(config['base_path'], config['saved_model_path'], config['restart'])
+#trainer.fit(litmodel, datamodule=dm, ckpt_path=checkpoint_path)
+#trainer.test(litmodel, datamodule=dm, ckpt_path=checkpoint_path) #None
+trainer.predict(litmodel, datamodule=dm, ckpt_path=checkpoint_path)
 
-trainer.fit(litmodel, datamodule=dm)
-trainer.test(datamodule=dm, ckpt_path=None)
+
 

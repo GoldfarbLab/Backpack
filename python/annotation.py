@@ -18,10 +18,9 @@ class annotation:
         self.length = None
         if self.name[0] in "abcxyz":
             self.length = int(self.name[1:])
-        elif self.name[0:3] == "Int" and ">" in self.name:
-            self.length = int(self.name[4:].split(">")[1])
-        elif self.name[0:3] == "Int" and ">" not in self.name:
-            self.length = len(self.name.split("_")[1])
+        elif self.name[0] == "m":
+            [start, end] = self.name[1:].split(":")
+            self.length = 1 + int(end) - int(start)
         else:
             self.length = 1
 
@@ -29,8 +28,6 @@ class annotation:
     def from_entry(cls, entry, prec_z):
         if entry == "?": 
             return cls("?", None, None, None, None, None)
-        
-        entry = entry.replace("Int/", "Int_")
         
         if "/" in entry:
             error = float(entry.split("/")[-1][:-3])
@@ -48,14 +45,10 @@ class annotation:
             entry = "+".join(entry.split("+")[0:-1])
         else:
             isotope = 0
-        
-        
+    
         # get fragment charge
         if "^" not in entry:
-            if entry[0] == "p":
-                z = prec_z
-            else:
-                z = 1
+            z = 1
         else:
             z = int(entry.split("^")[1][0])
         entry = entry.split("^")[0]
@@ -99,7 +92,7 @@ class annotation:
         if self.name == "?": return "?"
         out = self.name
         out += self.getNLString()
-        if "p" not in self.name:
+        if self.z > 1:
             out += "^"+str(self.z)
         return out
     
@@ -135,7 +128,7 @@ class annotation:
         if self.name[0] == "p": return "p"
         if self.name[0] == "b": return "b"
         if self.name[0] == "y": return "y"
-        if self.name[0:3] == "Int": return "Int"
+        if self.name[0] == "m": return "m"
         if self.name[0] == "I": return "Imm"
         
     def getNLString(self):
@@ -143,7 +136,7 @@ class annotation:
         if self.NL:
             out += "-" + "-".join(self.NL)
         if self.NG:
-            out += "+" + "-".join(self.NG)
+            out += "+" + "+".join(self.NG)
         return out
     
     def getEmpiricalFormula(self, pep):
@@ -164,15 +157,13 @@ class annotation:
                 frag_formula = pep.getSuffix(length).getFormula(oms.Residue.ResidueType.YIon, self.z)
             elif self.name[0] == "z":
                 frag_formula = pep.getSuffix(length).getFormula(oms.Residue.ResidueType.ZIon, self.z)
-        elif self.name[0:3] == "Int" and ">" in self.name:
-            frag_start = int(self.name[4:].split(">")[0])
+        elif self.name[0] == "m":
+            frag_start = int(self.name[1:].split(":")[0])
             frag_formula = pep.getSubsequence(frag_start, self.length).getFormula(oms.Residue.ResidueType.Internal, self.z)
-        elif self.name[0:3] == "Int":
-            frag_formula = oms.AASequence.fromString(self.name[4:]).getFormula(oms.Residue.ResidueType.Internal, self.z)
     
         # deal with immonium
         else:
-            frag_formula = oms.EmpiricalFormula(annotator.IMMONIUM_ION_FOMRULA[self.name])
+            frag_formula = oms.EmpiricalFormula(annotator.IMMONIUM_ION_FORMULA[self.name])
             frag_formula.setCharge(self.z)
         
         # deal with NLs / NGs

@@ -1,0 +1,32 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/pytorch_ris:olive)'
+#BSUB -J olive
+#BSUB -q general
+#BSUB -R 'gpuhost rusage[mem=40GB]'
+#BSUB -gpu 'num=1:gmem=10G:gmodel=NVIDIAA40'
+#BSUB -n 1
+#BSUB -W 20000
+#BSUB -M 1G
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/olive.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/olive.%J.err.txt
+
+olive quantize \
+    --model_name_or_path /storage1/fs1/d.goldfarb/Active/Projects/AltimeterTriton/model_repository/altimeter/Altimeter_2024_main/1/model.onnx \
+    --algorithm dynamic \
+    --implementation onnx_dynamic \
+    --output_path /storage1/fs1/d.goldfarb/Active/Backpack/models/quantized \
+    --log_level 1
+
+olive auto-opt \
+    --model_name_or_path /storage1/fs1/d.goldfarb/Active/Backpack/models/quantized \
+    --output_path /storage1/fs1/d.goldfarb/Active/Backpack/models/optimized \
+    --device gpu \
+    --provider CUDAExecutionProvider \
+    --precision fp16 \
+    --log_level 1 \
+    --batch_size 1000
+
+# /storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_13M_20241218.pt
+# /storage1/fs1/d.goldfarb/Active/Projects/AltimeterTriton/model_repository/altimeter/Altimeter_2024_main/1/model.onnx

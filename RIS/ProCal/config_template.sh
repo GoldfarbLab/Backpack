@@ -27,5 +27,6 @@ YEAST_FASTA=${FASTA_PATH}/yeast-2024-06-04.fas
 PROCAL_FASTA=${FASTA_PATH}/ProteomeTools/procal.fasta
 QC_FASTA=${FASTA_PATH}/ProteomeTools/ProteomeTools_QC.fasta
 POOL_FASTA_PATH=${FASTA_PATH}/ProteomeTools/${POOL_NAME}.fasta
+QUAD_MODELS=${SCRATCH_PATH}/ProteomeTools/ProCal/quad_models.tsv
 
 export PYTHONPATH=${SRC_PATH}/python/

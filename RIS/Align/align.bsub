@@ -5,7 +5,7 @@
 #BSUB -J align
 #BSUB -q general
 #BSUB -R 'gpuhost rusage[mem=12GB]'
-#BSUB -gpu 'num=1:gmem=30G:gmodel=NVIDIAA100_SXM4_80GB'
+#BSUB -gpu 'num=1:gmem=10G:gmodel=NVIDIAA40'
 #BSUB -W 20000
 #BSUB -M 12G
 #BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/align.%J.out.txt

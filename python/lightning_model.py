@@ -4,7 +4,7 @@ import sys
 from torch.optim.lr_scheduler import StepLR, ExponentialLR
 import wandb
 import matplotlib.pyplot as plt
-from models_poly import FlipyFlopy
+from models_spline import FlipyFlopy
 
 # define the LightningModule
 class LitFlipyFlopy(L.LightningModule):
@@ -15,17 +15,12 @@ class LitFlipyFlopy(L.LightningModule):
         self.model = FlipyFlopy(**model_config)
         self.config = config
         self.validation_step_outputs = []
-    #def __init__(self, 
-    #             model,
-    #             config):
-    #    super().__init__()
-    #    self.model = model
-    #    self.config = config
-    #    self.validation_step_outputs = []
 
     def training_step(self, batch, batch_idx):
         weighted_loss = self.step(batch, batch_idx)
-        self.log("train_loss", weighted_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, sync_dist=True, batch_size=self.config['batch_size'])  
+        self.log("train_loss", weighted_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, sync_dist=True, batch_size=self.config['batch_size']) 
+        for i, x in enumerate(self.model.get_knots().detach().cpu().numpy()):
+            self.log("knots"+str(i), x, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist=True, batch_size=self.config['batch_size'])  
         return weighted_loss
     
     def validation_step(self, batch, batch_idx):
@@ -39,6 +34,12 @@ class LitFlipyFlopy(L.LightningModule):
         self.log("test_SA_mean", losses.mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True, batch_size=self.config['test_batch_size'])  
         return losses
     
+    def predict_step(self, batch, batch_idx):
+        losses = self.test_step(batch, batch_idx)
+        for i, loss in enumerate(losses):
+            print("figure", i, loss.item(), len(batch["seq"][i]))
+        return losses
+    
     def on_validation_epoch_end(self):
         all_preds = torch.cat(self.validation_step_outputs)
         self.log("val_SA_median", all_preds.median(), on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
@@ -47,6 +48,9 @@ class LitFlipyFlopy(L.LightningModule):
     
     def forward(self, x):
         return self.model(x)
+    
+    def forward_coef(self, x):
+        return self.model.forward_coef(x)
     
     
     
@@ -57,7 +61,7 @@ class LitFlipyFlopy(L.LightningModule):
         LODs = batch['LOD']
         weights = batch['weight']
         mask_zero = batch['min_mz'] == "0"
-        out = self.model(samples, test=False)
+        out = self.model(samples)
         return targ, mask, LODs, weights, mask_zero, out
     
     def step(self, batch, batch_idx):
@@ -76,14 +80,8 @@ class LitFlipyFlopy(L.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), eval(self.config['lr']))
-        if self.config['restart'] is not None:
-            # loading optimizer state requires it to be initialized with model GPU parms
-            # how does this work with lightning?
-            optimizer.load_state_dict(torch.load(self.config['restart']))
-        #scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
-        scheduler = ExponentialLR(optimizer, gamma=0.90)
+        scheduler = ExponentialLR(optimizer, gamma=self.config['lr_decay_rate'])
         return [optimizer], [scheduler]
-        #return optimizer
     
     ###############################################################################
     ############################# Visualization ###################################

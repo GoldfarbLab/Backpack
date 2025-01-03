@@ -131,13 +131,16 @@ class MS2MetaData:
                 self.polarity = v
             elif k == "fillTime":
                 self.fillTime = float(v)
+            elif k == "iso2eff":
+                self.iso2eff = v
             else: # Remaining optional meta data
                 self.key2val[k]=v
         #print(key2val)
-        if self.isoCenter != 0:
-            self.iso2eff = getUniformIsoEfficiency(getIsolatedIsotopes(self.isoCenter, self.isoWidth, self.monoMz, self.z))
-        else:
-            self.iso2eff = set([0])
+        if "iso2eff" not in key2val:
+            if self.isoCenter != 0:
+                self.iso2eff = getUniformIsoEfficiency(getIsolatedIsotopes(self.isoCenter, self.isoWidth, self.monoMz, self.z))
+            else:
+                self.iso2eff = set([0])
             
             
 def getIsolatedIsotopes(center, width, mono, z):
@@ -188,6 +191,9 @@ class scan:
     
     def getMaxIsotope(self):
         return max(self.metaData.iso2eff.keys())
+    
+    def getMinIsotope(self):
+        return min(self.metaData.iso2eff.keys())
     
     def getBasePeakIntensity(self):
         base_peak_index =  self.spectrum.findHighestInWindow(0, 1e99, 1e99)
@@ -288,6 +294,7 @@ class scan:
                   "Abundance=" + "{:.2f}".format(self.metaData.abundance),
                   "IsoFit=" + "{:.2f}".format(self.metaData.isoFit),
                   "IsoTargInt=" + "{:.2f}".format(self.metaData.isoTargInt),
+                  "iso2eff=" + ",".join([str(k) + "(" + "{:.7f}".format(v) + ")" for k,v in self.metaData.iso2eff.items()]),
                   "LOD=" + "{:.7f}".format(self.metaData.LOD),
                   "Resolution=" + "{:.0f}".format(self.metaData.resolution),
                   "Analyzer=" + self.metaData.analyzer,
@@ -307,6 +314,7 @@ class scan:
     
     def writeScan(self, outfile, write_unannotated=True, int_prec=1):
         num_peaks = self.spectrum.size() + len(self.tmp_mask)
+        if not write_unannotated: num_peaks -= sum([a.annotationString() == "?" for a in self.annotations])
 
         # write header
         outfile.write("Name: " + self.name + "\n")
@@ -400,6 +408,13 @@ def parseComment(comment):
     key2val = dict()
     for entry in comment.split(" "):
         [k,v] = entry.split("=")
+        if k == "iso2eff":
+            iso2eff = dict()
+            for entry in v.split(","):
+                iso = int(entry.split("(")[0])
+                eff = float(entry.split("(")[1].split(")")[0])
+                iso2eff[iso] = eff
+            v = iso2eff
         key2val[k] = v
     return key2val
 
@@ -457,6 +472,7 @@ def read_msp_file(path):
                 intensity = float(split_peak[1])
                 
                 annotations.append(annotation.annotation_list([annotation.annotation.from_entry(anno, metaData.z) for anno in split_peak[2].strip('"').split(",")]))
+                #print(split_peak)
                 mask.append(int(split_peak[3]) if split_peak[3] != "?" else -1)
 
                 mzs.append(mz)

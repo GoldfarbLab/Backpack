@@ -1,0 +1,72 @@
+base_path: /scratch1/fs1/d.goldfarb/Backpack/training/byp_nl_decon/ #byp_interp/
+ion_dictionary_path: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ion_dict_nl.tsv #ion_dict.tsv
+dataset_path: datasets/
+position_path: txt_pos/
+label_path: labels/
+saved_model_path: saved_model/
+saved_annot_model_path: saved_annot_model/
+
+#train_files: /storage1/fs1/d.goldfarb/Active/Backpack/troubleshooting/small_test.msp
+train_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/train.msp
+val_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/val.msp
+test_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/test.msp
+interp_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/interp_imm_01.msp
+
+config:
+weights: #/scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_noRootNCEMean/saved_model/ckpt_step1191168_0.9033
+restart:
+transfer:
+
+# Criteria for what peptides to include
+peptide_criteria:
+    min_length: 0
+    max_length: 40
+    min_charge: 0
+    max_charge: 8
+    min_energy: 0
+    max_energy: 1000
+    modifications_exclude:
+       - Acetyl
+       #- Carbamidomethyl
+       #- CAM
+       - Gln->pyro-Glu
+       - Glu->pyro-Glu
+       #- Oxidation
+       - Phospho
+       - Pyro-carbamidomethyl
+       - TMT6plex
+
+
+seq_len: 40
+chlim: 
+   - 1
+   - 8
+
+model_config:
+   embedsz: 256 # 256
+   blocks: 4 # 9
+   head:
+      - 8 # 16
+      - 8 # 16
+      - 32 # 64
+   units: None
+   filtlast: 512 # 512
+   learn_ffn_embed: False
+   CEembed: True
+   drop: 0
+   coefs: 4
+   knots: [6,13,20,27,34,41,48,55]
+   
+
+
+root_int:
+lr: 3e-4
+epochs: 100
+steps: 1000000
+batch_size: 100
+test_batch_size: 300
+lr_decay_start: 3
+lr_decay_rate: 0.9
+svwts: all
+num_workers: 4
+

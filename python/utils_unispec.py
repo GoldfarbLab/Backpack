@@ -86,6 +86,7 @@ class Labeler:
 class DicObj:
     def __init__(self,
                  stats_path,
+                 mod_config,
                  seq_len = 40,
                  chlim = [1,8]
                  ):
@@ -94,9 +95,10 @@ class DicObj:
         self.chrng = chlim[-1]-chlim[0]+1
         self.dic = {b:a for a,b in enumerate('ARNDCQEGHILKMFPSTWYVX')}
         self.revdic = {b:a for a,b in self.dic.items()}
-        self.mdic = {b:a+len(self.dic) for a,b in enumerate([
-                '','Acetyl', 'Carbamidomethyl', 'Gln->pyro-Glu', 'Glu->pyro-Glu', 
-                'Oxidation', 'Phospho', 'Pyro-carbamidomethyl', 'TMT6plex'])}
+        #self.mdic = {b:a+len(self.dic) for a,b in enumerate([
+        #        '','Acetyl', 'Carbamidomethyl', 'Gln->pyro-Glu', 'Glu->pyro-Glu', 
+        #        'Oxidation', 'Phospho', 'Pyro-carbamidomethyl', 'TMT6plex'])}
+        self.mdic = {b:a+len(self.dic) for a,b in enumerate([mod for mod in (list(mod_config['var_mods'].keys()) + list(mod_config['fixed_mods'].keys()))])}
         self.revmdic = {b:a for a,b in self.mdic.items()}
         
         self.parseIonDictionary(stats_path)
@@ -176,7 +178,7 @@ class LoadObj:
 
         """
         (seq, mod, charge, nce, min_mz, max_mz, LOD, iso2efficiency, weight) = info
-        output = torch.zeros((self.channels, self.D.seq_len), dtype=torch.float32)
+        output = torch.zeros((self.channels, self.D.seq_len), dtype=torch.long)
         
         # Sequence
         assert len(seq) <= self.D.seq_len, "Exceeded maximum peptide length."
@@ -708,36 +710,30 @@ class LoadObj:
         for ion in ions:
             annot = annotation.from_entry(ion, charge)
             
-            if ion[0] == "p": ion_charge = charge
-            else:
-                ion_charge = int(ion.split("^")[-1])
-            ext = (len(seq) if ion[0]=='p' else 
-                   (int(ion[1:].split('-')[0].split('+')[0].split('^')[0])
-                    if (ion[0] in ['a','b','y']) else 0)
-                   )
+            ion_charge = annot.z
+            ion_type = annot.getType()
+            ext = annot.length if ion_type != "p" else len(seq)
+           
             a = True
             # Do not include immonium ions for amino acids missing from the sequence
-            if ion[0] == "I" and "Int" not in ion:
+            if ion_type == "Imm":
                 a = False
-                for aa in seq:
-                    if ion[0:3] in annotator.IMMONIUM_IONS[aa]:
-                        a = True
-                if 'Carbamidomethyl' in mods and ion[0:3] in ["ICCAMA", "ICCAMB", "ICCAMC"]:
+                if annot.getName()[1] in seq:
                     a = True
-                if "Oxidation" in mods and ion[0:3] == "IMOC":
-                    a = True
-            if "Int" in ion:
-                if ion[4].isdigit():
-                    [start,ext] = [
-                        int(j) for j in 
-                        ion[4:].split("^")[0].split('+')[0].split('-')[0].split('>')
-                    ]
-                    # Do not write if the internal extends beyond length of peptide-2
-                    if (start+ext)>=(len(seq)-2): a = False
-                else:
-                    subseq = ion[4:].split("^")[0].split('+')[0].split('-')[0]
-                    if subseq not in seq:
+                if "IC(Carbamidomethyl)" in ion:
+                    if 'Carbamidomethyl' not in mods:
                         a = False
+                if "IM(Oxidation)" in ion:
+                    if "Oxidation" not in mods:
+                        a = False
+                        
+            if "m" in ion:
+                [start,ext] = [
+                    int(j) for j in 
+                    ion[1:].split("^")[0].split('+')[0].split('-')[0].split(':')
+                ]
+                # Do not write if the internal extends beyond length of peptide-2
+                if (start+ext)>=(len(seq)-2): a = False
             # The precursor ion must be the same charge
             #if ion[0] == 'p' and ion_charge != charge:
             #    a = False
@@ -778,8 +774,7 @@ class LoadObj:
                 a = False
             
             if a:
-                annot = annotation.from_entry(ion, ion_charge)
-                pep = createPeptide(seq, charge, mods)
+                pep = createPeptide(seq, mods)
                 ec = annot.getEmpiricalFormula(pep).getElementalComposition()
                 
                 for element in ec:
@@ -800,11 +795,11 @@ class LoadObj:
              for pos, aa, mod_type in mods:
                 if mod_type == mod_target and pos >= len(seq) - ext:
                     count+=1
-        elif ion.startswith("Int"):
-            if ion[4].isdigit():
+        elif ion.startswith("m"):
+            if ion[1].isdigit():
                 [start,ext] = [
                         int(j) for j in 
-                        ion[4:].split("^")[0].split('+')[0].split('-')[0].split('>')
+                        ion[1:].split("^")[0].split('+')[0].split('-')[0].split(':')
                     ]
                 for pos, aa, mod_type in mods:
                     if mod_type == mod_target and pos >= start and pos < start + ext:

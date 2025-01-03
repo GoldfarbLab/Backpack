@@ -14,4 +14,4 @@
 # Make output directory
 mkdir -p /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ProCal/merge/
 
-cat /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ProCal/**/results/annotated/*.msp > /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ProCal/merge/procal.msp
+cat /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ProCal/**/results/deisotope/*.deisotoped > /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ProCal/merge/procal.msp

@@ -20,7 +20,7 @@ class spline_models:
         
     def init_spline_models(self):
         # read spline file
-        with open("spline_fits_sqrt.tsv", 'r') as tsvfile:
+        with open("spline_fits_sqrt_quad.tsv", 'r') as tsvfile:
             tsvreader = csv.reader(tsvfile, delimiter="\t")
             header = next(tsvreader)
             for row in tsvreader:
@@ -239,38 +239,9 @@ def calibrate_lumos(pep2z2fit, all_scans):
 
 
 spline_mods = spline_models()            
-data_path = "/Users/dennisgoldfarb/Downloads/ProCal/merged/procal.msp.deisotoped"
+data_path = "/Users/dennisgoldfarb/Downloads/ProCal/v2/procal.msp"
 
 all_scans = [scan for scan in msp.read_msp_file(data_path) if scan.fileMetaData.model == "Orbitrap Fusion Lumos"]
 
 # output models
 pep2z2fit = model_lumos(all_scans)
-#dbfile = open('procal_lumos_2D_01', 'ab')
-#pickle.dump(pep2z2fit, dbfile)                    
-#dbfile.close()
-
-
-sys.exit()
-# cross-validation
-train_split = 0.8
-shuffles = 100
-
-diffs = []
-for itr in range(shuffles):
-    # shuffle scans
-    random.shuffle(all_scans)
-    # split 80/20
-    train = all_scans[0:int(np.ceil(len(all_scans)*train_split))]
-    test = all_scans[len(train):]
-    #train = all_scans
-    
-    pep2z2fit = model_lumos(train)
-    diffs.extend(calibrate_lumos(pep2z2fit, test))
-    
-    print("i:", itr)
-    print("mean:", np.mean(diffs))
-    print("median:", np.median(diffs))
-    q3, q1 = np.percentile(diffs, [75, 25])
-    print("IQR:", q3-q1)
-    print("min:", np.min(diffs))
-    print("max:", np.max(diffs))

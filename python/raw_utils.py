@@ -39,8 +39,18 @@ def getFileMetaData(rawFile):
     
     return RawFileMetaData(key2val)
 
+def extractIsoCal(rawFile):
 
-def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol, pep_z=None):
+    cal_date = "NA"
+    for i, header in enumerate(rawFile.GetTuneDataHeaderInformation()):
+        if header.Label == "IsolationCalibration":
+            cal_date = rawFile.GetTuneDataValues(0, True).Values[i]
+            break
+        
+    return cal_date 
+
+
+def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol, pep_z=None, quad_model=None):
     key2val = dict()
     
     reaction = scanEvent.GetReaction(0)
@@ -108,9 +118,31 @@ def getMS2ScanMetaData(rawFile, scan_id, scanEvent, scanFilter, peptide, ppm_tol
     key2val["IsoFit"] = isoFit
     key2val["IsoTargInt"] = isoTargInt
     key2val["LOD"] = getLOD(rawFile, scan_id)
+    
+    if quad_model is not None:
+        key2val["iso2eff"] = computeIsoEfficiency(quad_model, float(key2val["IsoCenter"]), float(key2val["MonoMZ"]), int(key2val["z"]))
 
     return MS2MetaData(key2val)
 
+def evalQuad(model, offset):
+    if offset < 0:
+        a = model.left_a
+        b = model.left_b
+    else:
+        a = model.right_a
+        b = model.right_b
+    return 1 / (1 + pow(abs(offset)/a, 2*b))
+
+def computeIsoEfficiency(quad_model, iso_center, target_mz, target_z):
+    iso2eff = dict()
+    for iso in range(10):
+        iso_mz = target_mz + (iso * oms.Constants.C13C12_MASSDIFF_U / target_z)
+        offset = iso_mz - iso_center
+        efficiency = evalQuad(quad_model, offset)
+        if efficiency >= 0.01:
+            iso2eff[iso] = efficiency
+
+    return iso2eff
 
 
 def getIsotopeStats(rawFile, scan_id, rt, iso_width, iso_center, target_mz, target_z, peptide, ppm_tol): 

@@ -8,8 +8,8 @@
 #BSUB -n 1
 #BSUB -W 3000
 #BSUB -M 4GB
-#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/aidata.%J.out.txt
-#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/aidata.%J.err.txt
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/aidata.%J.%I.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/aidata.%J.%I.err.txt
 
 source LSF_SCRIPT_PATH/config.sh
 

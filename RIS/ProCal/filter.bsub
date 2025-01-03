@@ -4,16 +4,16 @@
 #BSUB -a 'docker(dennisgoldfarb/raw:latest)'
 #BSUB -J filter
 #BSUB -q general
-#BSUB -R 'rusage[mem=1GB] span[hosts=1]'
+#BSUB -R "select[hname!='compute1-exec-105.ris.wustl.edu' && hname!='compute1-exec-97.ris.wustl.edu'] rusage[mem=4GB] span[hosts=1]"
 #BSUB -n 1
 #BSUB -W 300
-#BSUB -M 1GB
+#BSUB -M 4GB
 #BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/filter.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/filter.%J.err.txt
 
 source LSF_SCRIPT_PATH/config.sh
 
 # Make output directory
-mkdir -p ${RESULTS_PATH}/annotated/
+mkdir -p ${RESULTS_PATH}/filter/
 
-python3.9 ${SRC_PATH}/python/filter_sage_quality.py ${RESULTS_PATH}/sage/results.sage.tsv ${DATA_PATH} ${RESULTS_PATH}/annotated/ --pep_q 1 --protein_acc_include="pc\|"
+python3.9 ${SRC_PATH}/python/filter_by_dict.py ${SCRATCH_PATH}/ProteomeTools/ion_dict_nl.tsv ${RESULTS_PATH}/annotated/${DATA_NAME}.raw.msp ${RESULTS_PATH}/filter/${DATA_NAME}.msp
