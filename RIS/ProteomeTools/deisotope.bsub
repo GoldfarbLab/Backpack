@@ -4,7 +4,7 @@
 #BSUB -a 'docker(dennisgoldfarb/raw:latest)'
 #BSUB -J deisotope
 #BSUB -q general
-#BSUB -R "select[hname!='compute1-exec-407.ris.wustl.edu' && hname!='compute1-exec-414.ris.wustl.edu' && hname!='compute1-exec-404.ris.wustl.edu']rusage[mem=4GB] span[hosts=1]"
+#BSUB -R "select[hname!='compute1-exec-160.ris.wustl.edu' && hname!='compute1-exec-106.ris.wustl.edu'] rusage[mem=4GB] span[hosts=1]"
 #BSUB -n 1
 #BSUB -W 300
 #BSUB -M 4GB
@@ -17,4 +17,4 @@ source LSF_SCRIPT_PATH/config.sh
 mkdir -p ${RESULTS_PATH}/deisotope/
 
 echo ${RESULTS_PATH}/filter/${DATA_NAME}.msp
-python3.9 ${SRC_PATH}/python/deisotope.py ${RESULTS_PATH}/filter/${DATA_NAME}.msp ${RESULTS_PATH}/deisotope/
+python3.9 ${SRC_PATH}/python/deisotope_nodecon.py ${RESULTS_PATH}/filter/${DATA_NAME}.msp ${RESULTS_PATH}/deisotope/

@@ -1,10 +1,15 @@
-dic_config: /scratch1/fs1/d.goldfarb/Backpack/training/byp_nl_decon2/saved_model/4M-data.yaml
-model_config: /scratch1/fs1/d.goldfarb/Backpack/training/byp_nl_decon2/saved_model/4M-model_config.yaml
-model_ckpt: /scratch1/fs1/d.goldfarb/Backpack/training/byp_nl_decon2/saved_model/4M.ckpt
+#dic_config: /scratch1/fs1/d.goldfarb/Backpack/training/byp_nl_decon2/saved_model/4M-data.yaml
+#model_config: /scratch1/fs1/d.goldfarb/Backpack/training/byp_nl_decon2/saved_model/4M-model_config.yaml
+#model_ckpt: /scratch1/fs1/d.goldfarb/Backpack/training/byp_nl_decon2/saved_model/4M.ckpt
+dic_config: /scratch1/fs1/d.goldfarb/Backpack/training/byp_imm5_SA_roll_12hr/saved_model/data.yaml
+model_config: /scratch1/fs1/d.goldfarb/Backpack/training/byp_imm5_SA_roll_12hr/saved_model/model_config.yaml
+model_ckpt: /scratch1/fs1/d.goldfarb/Backpack/training/byp_imm5_SA_roll_12hr/saved_model/e14.ckpt
 enable_gpu: True
 
-to_predict: /storage1/fs1/d.goldfarb/Active/RIS_Goldfarb_Lab/NTW/PIONEER/PIONEER_PAPER/SPEC_LIBS/AltimiterOct13Version/Altimeter101324_MixedSpecies_OlsenAstral_NoEntrapment_101324.poin/precursors_for_altimiter.csv
-out_file: /scratch1/fs1/d.goldfarb/Backpack/libraries/astral/Altimeter101324_MixedSpecies_OlsenAstral_NoEntrapment_101324_smooth-b31/Altimeter
+#to_predict: /storage1/fs1/d.goldfarb/Active/RIS_Goldfarb_Lab/NTW/PIONEER/PIONEER_PAPER/SPEC_LIBS/AltimiterOct13Version/Altimeter101324_MixedSpecies_OlsenAstral_NoEntrapment_101324.poin/precursors_for_altimiter.csv
+to_predict: /scratch1/fs1/d.goldfarb/Backpack/eval/pickle/human.csv
+out_file: /storage1/fs1/d.goldfarb/Active/Backpack/libraries/human/byp_imm5_prosit_ewm2hr/Altimeter
+#out_file: /scratch1/fs1/d.goldfarb/Backpack/libraries/astral/Altimeter101324_MixedSpecies_OlsenAstral_NoEntrapment_101324_smooth-b31/Altimeter
 #out_file: /storage1/fs1/d.goldfarb/Active/Backpack/libraries/astral/Altimeter101324_MixedSpecies_OlsenAstral_NoEntrapment_101324_bright-u10/Altimeter
 #out_file: /storage1/fs1/d.goldfarb/Active/Backpack/libraries/exploris/Altimeter101324_MixedSpecies_OlsenAstral_NoEntrapment_101324_clear-b5/Altimeter
 

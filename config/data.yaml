@@ -1,5 +1,5 @@
-base_path: /scratch1/fs1/d.goldfarb/Backpack/training/byp_nl_decon2/
-ion_dictionary_path: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ion_dict_nl.tsv
+base_path: /storage1/fs1/d.goldfarb/Active/Backpack/models/byp_imm5_SA_roll_12hr/
+ion_dictionary_path: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ion_dict.tsv
 dataset_path: datasets/
 position_path: txt_pos/
 label_path: labels/
@@ -12,7 +12,7 @@ test_files: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/test.msp
 
 config:
 weights: #/scratch1/fs1/d.goldfarb/Backpack/training/byp_weighted_normTot_noRootNCEMean/saved_model/ckpt_step1191168_0.9033
-restart: 13M.ckpt
+restart: e14.ckpt
 transfer:
 
 # Criteria for what peptides to include
@@ -53,6 +53,7 @@ model_config:
    CEembed: True
    drop: 0.1
    coefs: 4
+   #knots: [1,7,13,19,25,31,37,43]
    knots: [6,13,20,27,34,41,48,55]
    
 
@@ -62,9 +63,9 @@ lr: 3e-4
 epochs: 100
 steps: 1000000
 batch_size: 100
-test_batch_size: 300
+test_batch_size: 500
 lr_decay_start: 3
-lr_decay_rate: 0.95
+lr_decay_rate: 0.85
 svwts: all
 num_workers: 4
 

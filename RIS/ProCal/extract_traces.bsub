@@ -1,0 +1,17 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/raw:latest)'
+#BSUB -J traces
+#BSUB -q general
+#BSUB -R "select[hname!='compute1-exec-160.ris.wustl.edu' && hname!='compute1-exec-106.ris.wustl.edu'] rusage[mem=1GB] span[hosts=1]"
+#BSUB -n 1
+#BSUB -W 300
+#BSUB -M 1GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/traces.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/traces.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+
+python3.9 ${SRC_PATH}/python/extract_clean_traces.py /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ProCal/procal.msp /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ProCal/procal_traces.tsv
+

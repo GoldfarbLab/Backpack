@@ -46,8 +46,11 @@ class LitFlipyFlopy(L.LightningModule):
         self.scoreDistPlot(all_preds, "val")
         self.validation_step_outputs.clear()  # free memory
     
-    def forward(self, x):
+    def forward(self, x:tuple[torch.Tensor, torch.Tensor]):
         return self.model(x)
+    
+    #def forward(self, x:torch.Tensor, y:torch.Tensor):
+    #    return self.model(x,y)
     
     def forward_coef(self, x):
         return self.model.forward_coef(x)

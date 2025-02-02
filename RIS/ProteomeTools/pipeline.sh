@@ -41,8 +41,8 @@ source ${SCRATCH_PATH}/ProteomeTools/${DATA_SET}/${DATA_NAME}/scripts/config.sh
 #echo Submitted sage job for $DATA_NAME with ID: $jid2
 
 #jid3=$(get_jobid bsub -w "ended($jid2)" < $SCRIPT_PATH/chronologer.bsub)
-#jid3=$(get_jobid bsub < $SCRIPT_PATH/chronologer.bsub)
-#echo Submitted chronologer job for $DATA_NAME with ID: $jid3
+#jid3=$(get_jobid bsub < $SCRIPT_PA#TH/chronologer.bsub)
+#echo Submitted chronologer job for# $DATA_NAME with ID: $jid3
 
 #jid4=$(get_jobid bsub -w "ended($jid3)" < $SCRIPT_PATH/annotate.bsub)
 #jid4=$(get_jobid bsub < $SCRIPT_PATH/annotate.bsub)

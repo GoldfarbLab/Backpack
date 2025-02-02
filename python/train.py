@@ -323,8 +323,8 @@ class MirrorPlotCallback(L.Callback):
 ###############################################################################
 ########################## Training and testing ###############################
 ###############################################################################
-stopping_criteria = EarlyStopping(monitor="val_SA_mean", mode="max", min_delta=0.00, patience=0) #5
-checkpoint_callback = ModelCheckpoint(dirpath=saved_model_path, save_top_k=1, monitor="val_SA_mean", mode="max", every_n_epochs=1)
+stopping_criteria = EarlyStopping(monitor="val_SA_mean", mode="max", min_delta=0.00, patience=5) #5
+checkpoint_callback = ModelCheckpoint(dirpath=saved_model_path, save_top_k=5, monitor="val_SA_mean", mode="max", every_n_epochs=1)
 mirrorplot_callback = MirrorPlotCallback()
 
 dm = AltimeterDataModule(config, D)
@@ -338,9 +338,9 @@ trainer = L.Trainer(default_root_dir=saved_model_path,
                     )
 
 checkpoint_path = os.path.join(config['base_path'], config['saved_model_path'], config['restart'])
-#trainer.fit(litmodel, datamodule=dm, ckpt_path=checkpoint_path)
-#trainer.test(litmodel, datamodule=dm, ckpt_path=checkpoint_path) #None
-trainer.predict(litmodel, datamodule=dm, ckpt_path=checkpoint_path)
+trainer.fit(litmodel, datamodule=dm, ckpt_path=checkpoint_path)
+trainer.test(litmodel, datamodule=dm, ckpt_path=checkpoint_path)
+#trainer.predict(litmodel, datamodule=dm, ckpt_path=checkpoint_path)
 
 
 

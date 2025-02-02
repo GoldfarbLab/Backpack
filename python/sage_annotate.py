@@ -123,6 +123,8 @@ if args.quad:
     iso_cal_date = raw_utils.extractIsoCal(rawFile)
     quad_model = quad_models[quad_models.cal == iso_cal_date].iloc[0]
     print("quad:", quad_model)
+else:
+    quad_model = None
 
 annotator = annotator.annotator()
 with open(os.path.join(args.out_path, Path(os.path.basename(args.raw_path)).resolve().stem + ".msp"), "w") as outfile:

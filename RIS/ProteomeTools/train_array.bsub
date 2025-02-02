@@ -2,10 +2,10 @@
 #BSUB -g /d.goldfarb/compute
 #BSUB -G compute-d.goldfarb
 #BSUB -a 'docker(dennisgoldfarb/pytorch_ris:lightning)'
-#BSUB -J train[4-8]
+#BSUB -J train[1-6]
 #BSUB -q general
 #BSUB -R 'gpuhost rusage[mem=40GB] '
-#BSUB -gpu 'num=1:gmem=10G:gmodel=NVIDIAA100_SXM4_40GB'
+#BSUB -gpu 'num=1:gmem=10G:gmodel=NVIDIAA40'
 #BSUB -n 8
 #BSUB -W 20000
 #BSUB -M 40G

@@ -34,7 +34,7 @@ with open(dict_outpath, 'w') as outfile:
         #if total == 0: continue
         if obs < config['min_count'] or obs/total < config['min_percent']: continue
         if annot.isotope > 0 and not config['isotopes']: continue
-        if (annot.NL or annot.NG) and not config['NLs']: continue
+        if (annot.NL or annot.NG) and annot.name[0] != "I" and not config['NLs']: continue
         if annot.name[0] == "p" and not config['precursor_ions']: continue
         if annot.name[0] == "a" and not config['a_ions']: continue
         if annot.name[0] == "b" and not config['b_ions']: continue

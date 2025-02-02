@@ -53,7 +53,7 @@ def B(x, k, i, t):
 # t = knots
 # c = coefficients
 # k = polynomial degree
-def bspline(x, t, c, k):
+def bspline(x:torch.Tensor, t:torch.Tensor, c:torch.Tensor, k:int):
     n = t.shape[1] - k - 1
     out = torch.zeros_like(x)
     for i in range(n):

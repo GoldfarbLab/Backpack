@@ -41,26 +41,32 @@ with open(config['model_config']) as stream:
     input_names = ["inp", "inpch"]
     output_names = ["coefficients", "knots", "AUCs"]
     
-    y = model(input_sample)
-    print(y)
+    print(model.model.get_knots())
     
-    model.to_onnx(altimeter_outpath, 
-                  input_sample,
-                  export_params=True,
-                  input_names=input_names,
-                  output_names=output_names,
-                  dynamic_axes={'inp' : {0 : 'batch_size'},    # variable length axes
-                                'inpch' : {0 : 'batch_size'},    # variable length axes
-                                'coefficients' : {0 : 'batch_size'},
-                                'knots' : {0 : 'batch_size'},
-                                'AUCs' : {0 : 'batch_size'}})
+    #print(input_seq.shape)
     
-    #script = model.to_torchscript()
-    #torch.jit.save(script, altimeter_outpath)
+    #y = model(input_sample)
+    #print(y[0].shape)
+    #print(y)
+    
+    
+    #model.to_onnx(altimeter_outpath, 
+    #              input_sample,
+    #              export_params=True,
+    #              input_names=input_names,
+    #              output_names=output_names,
+    #              dynamic_axes={'inp' : {0 : 'batch_size'},    # variable length axes
+    #                            'inpch' : {0 : 'batch_size'},    # variable length axes
+    #                            'coefficients' : {0 : 'batch_size'},
+    #                            'knots' : {0 : 'batch_size'},
+    #                            'AUCs' : {0 : 'batch_size'}})
+    
+    script = model.to_torchscript()
+    torch.jit.save(script, altimeter_outpath)
     
     # repeat for splines
     model2 = LitBSplineNN()
-    input_coef = torch.zeros((1, 4, 1009), dtype=torch.float32, device=device)
+    input_coef = torch.zeros((1, 4, 380), dtype=torch.float32, device=device)
     input_knots = model.model.get_knots().unsqueeze(0).to(device)
     input_ce = torch.zeros((1,1), dtype=torch.float32, device=device)
     input_sample = (input_coef, input_knots, input_ce)

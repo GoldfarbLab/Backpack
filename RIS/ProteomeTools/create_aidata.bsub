@@ -4,7 +4,7 @@
 #BSUB -a 'docker(dennisgoldfarb/pytorch_ris:pyopenms)'
 #BSUB -J aidata[1-3]
 #BSUB -q general
-#BSUB -R 'rusage[mem=4GB] span[hosts=1]'
+#BSUB -R "select[hname!='compute1-exec-160.ris.wustl.edu' && hname!='compute1-exec-106.ris.wustl.edu'] rusage[mem=4GB] span[hosts=1]"
 #BSUB -n 1
 #BSUB -W 3000
 #BSUB -M 4GB

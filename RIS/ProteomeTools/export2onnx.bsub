@@ -4,20 +4,22 @@
 #BSUB -a 'docker(dennisgoldfarb/pytorch_ris:lightning)'
 #BSUB -J onnx
 #BSUB -q general
-#BSUB -R "select[gpuhost && hname!='compute1-exec-213.ris.wustl.edu' && hname!='compute1-exec-212.ris.wustl.edu'] rusage[mem=40GB]"
-#BSUB -gpu 'num=1:gmem=10G:gmodel=NVIDIAA40'
+#BSUB -R "select[gpuhost && hname!='compute1-exec-213.ris.wustl.edu' && hname!='compute1-exec-212.ris.wustl.edu' && hname!='compute1-exec-211.ris.wustl.edu'] rusage[mem=2GB]"
 #BSUB -n 1
-#BSUB -W 20000
-#BSUB -M 40G
+#BSUB -W 1440
+#BSUB -M 2G
 #BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/onnx.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/onnx.%J.err.txt
 
 source LSF_SCRIPT_PATH/config.sh
 
-/bin/python3 ${SRC_PATH}/python/export2onnx.py /storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_4M_20241226_GPU.pt /storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_splines_GPU.pt
+#/bin/python3 ${SRC_PATH}/python/export2onnx.py /storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_Imm5_prosit_20250113_CPU.pt /storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_Imm5_20250113_splines_CPU.pt
+#/bin/python3 ${SRC_PATH}/python/export2onnx.py /storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_Imm_nl1_20250113_CPU.pt /storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_Imm_nl1_20250113_splines_GPU.pt
 #/bin/python3 ${SRC_PATH}/python/export2onnx.py /storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_4M_20241226_GPU_TS.pt /storage1/fs1/d.goldfarb/Active/Backpack/models/Altimeter_splines_GPU_TS.pt
 
+/bin/python3 ${SRC_PATH}/python/export2onnx.py /storage1/fs1/d.goldfarb/Active/Projects/AltimeterTriton/model_repository/altimeter/Altimeter_2024_core/1/model.pt /storage1/fs1/d.goldfarb/Active/Projects/AltimeterTriton/model_repository/altimeter/Altimeter_2024_eval_splines/1/model.onnx
 
 
-
-#BSUB -R 'rusage[mem=1GB]'
+# gpuhost && 
+# -R 'rusage[mem=1GB]'
+# -gpu 'num=1:gmem=10G:gmodel=NVIDIAA40'

@@ -38,7 +38,7 @@ with open(os.path.join(os.path.dirname(__file__), "../config/mods.yaml"), 'r') a
 with open(config['dic_config'], 'r') as stream:
     dconfig = yaml.safe_load(stream)
 
-D = utils_unispec.DicObj(dconfig['ion_dictionary_path'], dconfig['seq_len'], dconfig['chlim'])
+D = utils_unispec.DicObj(dconfig['ion_dictionary_path'], mod_config, dconfig['seq_len'], dconfig['chlim']) 
 L = utils_unispec.LoadObj(D, embed=True)
 
 # Instantiate model
@@ -221,7 +221,7 @@ def predict_batch(labels):
     samples, info = L.input_from_str(labels)
     samplesgpu = [m.to(device) for m in samples]
     
-    coef = model.forward_coef(samplesgpu)
+    coef, knots, auc = model.forward_coef(samplesgpu)
     coef = coef.cpu().detach().numpy()
     
     return info, coef
@@ -269,6 +269,8 @@ with torch.no_grad():
         corrected_mods_list = []
         for row_i, row in enumerate(reader):
             batch_idx = int(row_i / batch_size)
+            
+            #print("batch:", batch_idx, row_i, job_id)
                 
             if batch_idx % args.num_jobs != job_id: continue
             
@@ -287,6 +289,7 @@ with torch.no_grad():
             
             # predict and output previous batch if it was the right job_id
             if len(labels) >= batch_size: 
+                print("PREDICTING:", batch_idx, row_i, job_id)
                 #predict_batch_NCEs(labels)
                 
                 info, coef = predict_batch(labels)

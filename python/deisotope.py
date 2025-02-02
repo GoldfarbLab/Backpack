@@ -101,14 +101,19 @@ def deisotope(scan):
     for base_ion in base_ion2isotope:
         annot = name2annot[base_ion]
         if base_ion not in ambig_annots:
-            if len(base_ion2isotope[base_ion]) == 1:
+            if base_ion2isotope[base_ion][0][1] <= 0: # masked outside scan range
                 mzs.append(annot.getMZ(scan.peptide))
                 intensities.append(base_ion2isotope[base_ion][0][1])
                 annotations.append(annotation.annotation_list([annot]))
-                if base_ion2isotope[base_ion][0][1] > 0: # no deisotoping necessary
-                    masks.append(0)
-                else:
-                    masks.append(1) # this was masked outside the scan range already
+                masks.append(1)
+            #if len(base_ion2isotope[base_ion]) == 1:
+            #    mzs.append(annot.getMZ(scan.peptide))
+            #    intensities.append(base_ion2isotope[base_ion][0][1])
+            #    annotations.append(annotation.annotation_list([annot]))
+            #    if base_ion2isotope[base_ion][0][1] > 0: # no deisotoping necessary
+            #        masks.append(0)
+            #    else:
+            #        masks.append(1) # this was masked outside the scan range already
             else:
                 iso_dist = annot.getTheoreticalIsotopeDistribution(scan.peptide, scan.metaData.iso2eff)
                 observed_dist = np.zeros(len(iso_dist))
@@ -127,8 +132,10 @@ def deisotope(scan):
                 mzs.append(annot.getMZ(scan.peptide))
                 intensities.append(observed_dist.sum())
                 annotations.append(annotation.annotation_list([annot]))
+                
+                sim_threshold = 0.9 + (min(1, (observed_dist*theo_dist).sum() / 0.2) * 0.05)
                     
-                if sim >= 0.9:
+                if sim >= sim_threshold:
                     masks.append(0)
                 else:
                     masks.append(2)
@@ -195,7 +202,7 @@ def deisotope(scan):
             output_size = len(ambig_group) * (max_iso+1)
             b = np.zeros(output_size)
             
-            print(ambig_group, max_iso)
+            #print(ambig_group, max_iso)
             # populate the front with annotated ambig peaks
             b_i = 0
             name2iso_index = defaultdict(list)
@@ -206,7 +213,7 @@ def deisotope(scan):
                         if annot_name == annot.getName():
                             name2iso_index[annot_name].append([annot.isotope, b_i])
                             if not found:
-                                print(scan.metaData.scanID, annot_name, annot.isotope, b_i)
+                                #print(scan.metaData.scanID, annot_name, annot.isotope, b_i)
                                 b[b_i] = scan.spectrum[i].getIntensity()
                                 found = True
                                 
@@ -218,6 +225,8 @@ def deisotope(scan):
             
             # populate template matrix
             next_empty_index = b_i
+            # keep track of what % of the distribution was observed
+            base_ion2percent = defaultdict(float)
             for ion_index, base_ion in enumerate(ambig_group):
                 # compute isotope distribution
                 iso_dist = name2annot[base_ion].getTheoreticalIsotopeDistribution(scan.peptide, scan.metaData.iso2eff)
@@ -229,6 +238,7 @@ def deisotope(scan):
                             isotope_match_index = isotope_match[1]
                     if isotope_match_index != -1:
                         A[isotope_match_index, ion_index] = prob
+                        base_ion2percent[base_ion] += prob
                     else:
                         A[next_empty_index, ion_index] = prob
                         next_empty_index+=1
@@ -241,7 +251,7 @@ def deisotope(scan):
             x_perc = x[0] / x[0].sum()
             x_sig = x_perc * total_signal
             
-            if x[1] <= 0.5:
+            if x[1] <= 0.2:
                 # output deconvolved values
                 for i, annot_name in enumerate(ambig_group):
                     annot = copy.deepcopy(name2annot[annot_name])
@@ -250,7 +260,7 @@ def deisotope(scan):
                     masks.append(0)
                     mzs.append(mz)
                     annotations.append(annotation.annotation_list([annot]))
-                    intensities.append(x_sig[i])
+                    intensities.append(x_sig[i]) #  * base_ion2percent[annot.getName()]
                 
             else:
                 # output masked values

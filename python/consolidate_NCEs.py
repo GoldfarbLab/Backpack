@@ -29,7 +29,7 @@ NCE_align_data['created_date'] = pd.to_datetime(NCE_align_data['created_date'])
 NCE_align_data = NCE_align_data.sort_values(by=['created_date'])
 ###################
 
-smoothed_data = NCE_align_data.groupby(['cal_date', 'instrument_id', 'NCE'])[['offset', 'created_date']].apply(lambda x: x.rolling('24h', min_periods=1, center=True, on='created_date').mean()).reset_index()
+smoothed_data = NCE_align_data.groupby(['cal_date', 'instrument_id', 'NCE'])[['offset', 'created_date']].apply(lambda x: x.rolling('12h', min_periods=1, center=True, on='created_date').mean()).reset_index()
 
 smoothed_data['offset_aligned'] = smoothed_data['offset']
 smoothed_data.drop(['offset', 'level_3'], axis=1, inplace=True)
@@ -78,4 +78,3 @@ s = (pd.merge_asof(
 NCE_align_data['offset_aligned'] = NCE_align_data['offset_aligned'].fillna(s, downcast='infer')
 
 NCE_align_data.to_csv(out_path, sep="\t", index=False)
-

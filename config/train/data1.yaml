@@ -1,5 +1,5 @@
-base_path: /scratch1/fs1/d.goldfarb/Backpack/training/byp_nl_decon/ #byp_interp/
-ion_dictionary_path: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ion_dict_nl.tsv #ion_dict.tsv
+base_path: /scratch1/fs1/d.goldfarb/Backpack/training/byp_imm5_prosit/ #byp_interp/
+ion_dictionary_path: /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ion_dict.tsv #ion_dict.tsv
 dataset_path: datasets/
 position_path: txt_pos/
 label_path: labels/
@@ -60,13 +60,13 @@ model_config:
 
 
 root_int:
-lr: 1e-4
+lr: 3e-4
 epochs: 100
 steps: 1000000
 batch_size: 100
-test_batch_size: 300
+test_batch_size: 500
 lr_decay_start: 3
-lr_decay_rate: 0.9
+lr_decay_rate: 0.85
 svwts: all
 num_workers: 4
 

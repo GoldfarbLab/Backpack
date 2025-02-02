@@ -3,6 +3,7 @@ verbose=False # print out intialization statistics for various tensors.
 import torch
 from torch import nn
 import numpy as np
+from typing import Optional
 
 
 # NOTE: Target sigma
@@ -50,7 +51,7 @@ class TrainableEltwiseBiasLayer(nn.Module):
         super(TrainableEltwiseBiasLayer, self).__init__()
         self.weights = nn.Parameter(initKnots(n))  # define the trainable parameter
         
-    def forward(self, x):
+    def forward(self, x:torch.Tensor):
         return self.weights
 
 class TalkingHeads(nn.Module):
@@ -122,7 +123,7 @@ class TalkingHeads(nn.Module):
             print("Wl=%f"%self.Wl.std())
             print("Ww=%f"%self.Ww.std())
             print("Wo=%f"%self.Wo.std())
-    def forward(self, inp, mask):
+    def forward(self, inp:torch.Tensor, mask:torch.Tensor):
         """
         Talking heads forward function
 
@@ -207,7 +208,7 @@ class FFN(nn.Module):
         if verbose:
             print("FFN=%f"%self.W1.std())
     
-    def forward(self, inp, embinp=None):
+    def forward(self, inp:torch.Tensor, embinp:torch.Tensor):
         """
         Feed forward network forward function.
 
@@ -225,7 +226,7 @@ class FFN(nn.Module):
                       Useful for diagnosing instabilities.
 
         """
-        emb = 0 if self.embed==None else self.chce(embinp)[...,None]
+        emb = self.chce(embinp).unsqueeze(-1)
         resid1 = torch.relu(torch.einsum('abc,bd->adc', inp, self.W1) + emb)
         resid2 = torch.einsum('abc,bd->adc', resid1, self.W2)
         resid2 = self.drop(resid2)
@@ -254,7 +255,7 @@ class TransBlock(nn.Module):
         self.norm2 = nn.BatchNorm1d(units1)
         self.ffn = FFN(*fargs)
         
-    def forward(self, inp, embed=None, mask=None):
+    def forward(self, inp:torch.Tensor, embed:torch.Tensor, mask:torch.Tensor):
         """
         Forward call for TransBlock
 
@@ -296,7 +297,7 @@ class FlipyFlopy(nn.Module):
                  learn_ffn_embed=True,
                  pos_type='learned',
                  coefs=4,
-                 knots=[6, 13, 20, 27, 34, 41, 48, 55],
+                 knots=[1, 7, 13, 19, 25, 31, 37, 43],
                  num_fixed_knots=4
                  ):
         """
@@ -340,14 +341,14 @@ class FlipyFlopy(nn.Module):
             self.pos = nn.Parameter(initPos((embedsz, seq_len)), requires_grad=True)
         else:
             pos = (
-                np.arange(seq_len)[:,None] * 
-                np.exp(-np.log(1000) * 
-                       np.arange(embedsz//2)/(embedsz//2)
+                torch.arange(seq_len)[:,None] * 
+                torch.exp(-np.log(1000) * 
+                       torch.arange(embedsz//2)/(embedsz//2)
                 )[None]
             )
             self.pos = nn.Parameter(
                 torch.tensor(
-                    np.concatenate([np.cos(pos),np.sin(pos)], axis=-1).T[None], 
+                    torch.concatenate([torch.cos(pos),torch.sin(pos)], axis=-1).T[None], 
                     dtype=torch.float32
                 ), requires_grad=False
             )
@@ -397,7 +398,7 @@ class FlipyFlopy(nn.Module):
             print("Proj: %f"%self.Proj.std())
             print("Final: %f"%list(self.final.parameters())[0].std())
     
-    def embedCE(self, ce, embedsz, freq=10000.):
+    def embedCE(self, ce, embedsz:int, freq:float=10000.):
         """
         Generating fourier features for either charge and energy or positional
         embedding.
@@ -417,11 +418,11 @@ class FlipyFlopy(nn.Module):
         embed = (
             ce[:,None] * 
             torch.exp(
-                -np.log(freq) * 
+                -torch.log(torch.tensor(freq)) * 
                 torch.arange(embedsz//2, device=ce.device)/(embedsz//2)
             )[None]
         )
-        return torch.cat([torch.cos(embed),torch.sin(embed)],axis=1)      
+        return torch.cat([torch.cos(embed),torch.sin(embed)],dim=1)      
     
     def total_params(self, trainable=True):
         """
@@ -438,24 +439,20 @@ class FlipyFlopy(nn.Module):
         else:
             print(sum([np.prod(m.shape) for m in list(self.parameters())]))
             
-    def forward_coef(self, inp):
+    def forward_coef(self, inp:tuple[torch.Tensor, torch.Tensor]):
         inp, inpch = inp
-        # inp = (inp, inpch, inpev)
-        if self.CEembed:
-            # unpack input
-            #[inp, inpch, _] = inp
-            if len(inpch.shape) == 0:
-                inpch = inpch.unsqueeze(-1)
-            elif len(inpch.shape) == 2:
-                inpch = inpch.squeeze(1)
-                
-            ch_embed = nn.functional.silu(
-                self.denseCH(self.embedCE(inpch, self.cesz, 10))
-            )
-            embed = self.postcat(torch.cat([ch_embed],-1))
-        else:
-            inp = inp[0]
-            embed = None
+    #def forward(self, inp:torch.Tensor, inpch:torch.Tensor):
+   
+
+        if len(inpch.shape) == 0:
+            inpch = inpch.unsqueeze(-1)
+        elif len(inpch.shape) == 2:
+            inpch = inpch.squeeze(1)
+            
+        ch_embed = nn.functional.silu(
+            self.denseCH(self.embedCE(inpch, self.cesz, 10.0))
+        )
+        embed = self.postcat(torch.cat([ch_embed],-1))
         
         # inp.shape: bs, in_ch, seq_len
         mask = (1e5*inp[:,20] 
@@ -494,7 +491,7 @@ class FlipyFlopy(nn.Module):
     
     def get_knots(self):
         knots_left = torch.tensor(self.knots[:(self.num_fixed_knots >> 1)], device=self.knot_linear.weights.device)
-        knots_center = torch.cumsum(torch.sigmoid(self.knot_linear.weights)*10, dim=0) + 20 #0:2
+        knots_center = torch.cumsum(torch.sigmoid(self.knot_linear.weights)*10, dim=0) + self.knots[1] + (self.knots[1]-self.knots[0])# 20 #0:2
         knots_right = torch.tensor(self.knots[-(self.num_fixed_knots >> 1):], device=self.knot_linear.weights.device)
         
         knots = torch.cat((knots_left, knots_center, knots_right))
@@ -504,10 +501,10 @@ class FlipyFlopy(nn.Module):
     # from NCE 20 to 40
     def integrate(self, knots, poly_coef):
         auc = torch.zeros(poly_coef.shape[0], poly_coef.shape[2], device=poly_coef.device)
-        auc += poly_coef[:,0,:] * (knots[4] - knots[0]) * 0.48041552636299506
-        auc += poly_coef[:,1,:] * (knots[5] - knots[1]) * 0.9562035063524263
-        auc += poly_coef[:,2,:] * (knots[6] - knots[2]) * 0.9480266195408412
-        auc += poly_coef[:,3,:] * (knots[7] - knots[3]) * 0.4991982015534648
+        auc += poly_coef[:,0,:] * (knots[4] - knots[0]) * 0.08408505396482596 #0.0752889089763667 
+        auc += poly_coef[:,1,:] * (knots[5] - knots[1]) * 0.47690670779403865 #0.3075992695693613 #
+        auc += poly_coef[:,2,:] * (knots[6] - knots[2]) * 0.19068693745182305 #0.07144580350892756 #
+        auc += poly_coef[:,3,:] * (knots[7] - knots[3]) * 0.00731285949764904  #0.0009773926870403494 #
         return auc / 4
             
 

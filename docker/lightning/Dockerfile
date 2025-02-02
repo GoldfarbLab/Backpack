@@ -1,9 +1,15 @@
 FROM ghcr.io/washu-it-ris/novnc:ubuntu22.04_cuda12.4_runtime
+#FROM nvidia/cuda:12.6.1-runtime-ubuntu22.04
+#FROM dennisgoldfarb/tritonaltimeter
 
 RUN apt-get update \
      && apt-get install -y \
         libgl1-mesa-glx \
-        libx11-xcb1 \
+        libx11-xcb1 \ 
+        git \
+        gdb \
+        python3 \
+        python3-pip \
      && apt-get clean all \
      && rm -r /var/lib/apt/lists/*
 

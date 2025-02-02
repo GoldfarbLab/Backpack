@@ -68,6 +68,7 @@ model = "QE" if rawFileMetaData.model == "Q Exactive Plus Orbitrap" else "Lumos"
 procal_path = os.path.join(args.procal_path, "ProCal_" + model + ".txt")
 procal = pd.read_csv(procal_path, sep="\t")
 
+quad_model = None
 if args.quad:
     quad_models = pd.read_csv(args.quad, sep="\t")
     iso_cal_date = raw_utils.extractIsoCal(rawFile)

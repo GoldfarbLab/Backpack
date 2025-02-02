@@ -26,7 +26,7 @@ mkdir -p $SCRIPT_PATH
 mv ./$CONFIG_FILE $SCRIPT_PATH/config.sh
 
 # Update scripts with dataset specific parameters
-declare -a scripts=("convert_raw.bsub" "annotate.bsub" "deisotope.bsub" "filter.bsub" "quad_fit.bsub" "merge_quad.bsub")
+declare -a scripts=("convert_raw.bsub" "annotate.bsub" "deisotope.bsub" "filter.bsub" "quad_fit.bsub" "merge_quad.bsub" "merge_msp.bsub" "extract_traces.bsub" "frag_splines.bsub" "lumos2qe_poly.bsub" "calibrate_lumos.bsub")
 
 for val in ${scripts[@]}; do
     sed "s+LSF_SCRIPT_PATH+$SCRIPT_PATH/+g" < $val > $SCRIPT_PATH/$val

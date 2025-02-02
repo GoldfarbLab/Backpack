@@ -2,7 +2,7 @@
 
 # Read command line arguments
 DATA_SET=$1
-CONFIG_PATH=$2
+CONFIG_PATH=$2#
 DATA_FOLDER=$3
 PIPELINE=$4
 

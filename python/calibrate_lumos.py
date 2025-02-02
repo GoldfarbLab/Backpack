@@ -1,17 +1,17 @@
-from scipy.interpolate import BSpline, RegularGridInterpolator
+from scipy.interpolate import BSpline
 import matplotlib.pyplot as plt
 import csv
 import numpy as np
 from collections import defaultdict
-from similarity import spectralAngle
+from similarity import spectralAngle, scribe
 import msp
 import sys
-import pyswarms as ps
-from scipy import stats
 import random as random
-import pickle
 
 
+frag_spline_path = sys.argv[1] #spline_fits.tsv
+data_path = sys.argv[2] #"/Users/dennisgoldfarb/Downloads/ProCal/v2/procal.msp"
+out_path = sys.argv[3]
 
 class spline_models:
     def __init__(self):
@@ -20,7 +20,7 @@ class spline_models:
         
     def init_spline_models(self):
         # read spline file
-        with open("spline_fits_sqrt_quad.tsv", 'r') as tsvfile:
+        with open(frag_spline_path, 'r') as tsvfile:
             tsvreader = csv.reader(tsvfile, delimiter="\t")
             header = next(tsvreader)
             for row in tsvreader:
@@ -63,38 +63,47 @@ def weightedTrimMean(l, percent, weights):
     return np.average(sorted(l)[int(len(l)*percent):int(len(l)*(1-percent))], weights=weights[int(len(l)*percent):int(len(l)*(1-percent))])
     
 def SA(s1, s2):
-    intersection_set = set(s1.keys()) & set(s2.keys())
+    intersection_set = set(s1.keys()) & set(s2.keys()) # union vs intersection
     if len(intersection_set) <= 2: return 0 #np.nan
     if sum(s2.values()) <= 0: return 0 #np.nan
     
     # observed
+    #v1_a = []
+    #for f in s2:
+    #    if f in s1:
+    #        v1_a.append(s1[f])
+    #    else:
+    #        v1_a.append(0)
+    #v1_a = np.array(v1_a)      
     v1_a = np.array([s1[f] for f in intersection_set])
     
     # predicted
+    #v2_a = []
+    #for f in s2:
+    #    if f in s2:
+    #        v2_a.append(s2[f])
+    #    else:
+    #        v2_a.append(0)
+    #v2_a = np.array(v2_a) 
     v2_a = np.array([s2[f] for f in intersection_set])
     
     return spectralAngle(v1_a, v2_a, 0)
+    #return scribe(v1_a, v2_a, 0)
 
-def PSO_SA(x, s1, seq, z):
-    SAs = np.zeros_like(x[:,0])
-    for i, NCE in enumerate(x[:, 0]):
-        s2 = spline_mods.predictSpectrum(seq, z, NCE)
-        SA_score = SA(s1,s2)
-        SAs[i] = 1-SA_score
-    return SAs
 
 def scan2dict(scan):
     frag2intensity = dict()
     for i, peak in enumerate(scan.spectrum):
         # check mask
         if scan.mask[i] == 0 or scan.mask[i] == 3:
+            #if scan.annotations[i].annotationName()[0] != "p": # not using precursor
             #if all([annot.error <= 10 for annot in scan.annotations[i].entries]):
                 frag2intensity[scan.annotations[i].annotationName()] = peak.getIntensity()
             
     return frag2intensity
 
 def get_SAs_for_scan(spline_mods, seq, z, scan, NCE_target):
-    step_size = 0.01
+    step_size = 0.1 #0.01
     min_NCE = min(5, NCE_target-20)
     max_NCE = max(55, NCE_target+20)
     steps = int(np.ceil((max_NCE - min_NCE) / step_size))
@@ -138,49 +147,53 @@ def compute_SA_offsets(all_scans, pep, pep_z, NCE_target):
 
 def model_lumos(all_scans):
     pep2z2fit = defaultdict(dict)
-    for pep in spline_mods.pep2z2frag2fit:
-        for pep_z in spline_mods.pep2z2frag2fit[pep]:
-            #print(pep, pep_z)
-            
-            valid_NCEs = []
-            values = []
-            tot_weight = 0
-             
-            for NCE_target in [10,15,20,22,24,26,28,30,32,34,36,38,40,45,50]:
+    with open(out_path, 'w') as outfile:
+        
+        outfile.write("pep z SA NCE_Lumos NCE_QE offset\n")
+        
+        for pep in spline_mods.pep2z2frag2fit:
+            for pep_z in spline_mods.pep2z2frag2fit[pep]:
+                #print(pep, pep_z)
                 
-                weighted_SAs, weight, NCEs = compute_SA_offsets(all_scans, pep, pep_z, NCE_target)
-                if weighted_SAs is None: continue
+                valid_NCEs = []
+                values = []
+                tot_weight = 0
                 
-                values.append(weighted_SAs)
-                valid_NCEs.append(NCE_target)
-                tot_weight += weight
+                for NCE_target in [10,15,20,22,24,26,28,30,32,34,36,38,40,45,50]:
+                    
+                    weighted_SAs, weight, NCEs = compute_SA_offsets(all_scans, pep, pep_z, NCE_target)
+                    if weighted_SAs is None: continue
+                    
+                    values.append(weighted_SAs)
+                    valid_NCEs.append(NCE_target)
+                    tot_weight += weight
+                    
+                    outfile.write(pep + " " + str(pep_z) + " " + str(np.max(weighted_SAs)) + " "  + str(NCE_target) + " " + str(NCEs[np.argmax(weighted_SAs)]) + " " + str(np.round(NCEs[np.argmax(weighted_SAs)]-NCE_target,2)) + "\n")
+                    
+                    
+                if len(valid_NCEs) == 0: 
+                    #print("none valid")
+                    continue
                 
-                print(pep, pep_z, np.max(weighted_SAs), NCE_target, NCEs[np.argmax(weighted_SAs)], np.round(NCEs[np.argmax(weighted_SAs)]-NCE_target,2))
+                #points = [np.array(valid_NCEs), np.linspace(5, 55, num=len(values[0]))]
+                #interp = RegularGridInterpolator(points, np.array(values), bounds_error=False, fill_value=0)
+                #pep2z2fit[pep][pep_z] = [interp, tot_weight]
                 
+                #ut, vt = np.meshgrid(np.linspace(min(valid_NCEs), max(valid_NCEs), 500), np.linspace(5, 55, 500),  indexing='ij')
+                #grid_points = np.array([ut.ravel(), vt.ravel()]).T
                 
-            if len(valid_NCEs) == 0: 
-                #print("none valid")
-                continue
-            
-            #points = [np.array(valid_NCEs), np.linspace(5, 55, num=len(values[0]))]
-            #interp = RegularGridInterpolator(points, np.array(values), bounds_error=False, fill_value=0)
-            #pep2z2fit[pep][pep_z] = [interp, tot_weight]
-            
-            #ut, vt = np.meshgrid(np.linspace(min(valid_NCEs), max(valid_NCEs), 500), np.linspace(5, 55, 500),  indexing='ij')
-            #grid_points = np.array([ut.ravel(), vt.ravel()]).T
-            
-            #fig, axes = plt.subplots(1, 3, figsize=(10, 6))
-            #axes = axes.ravel()
-            #fig_index = 0
-            #for method in ['linear', 'slinear', 'cubic']:
-            #    im = interp(grid_points, method=method).reshape(500, 500)
-            #    axes[fig_index].imshow(im)
-            #    axes[fig_index].set_title(method)
-            #    axes[fig_index].axis("off")
-            #    fig_index += 1
-            #fig.tight_layout()
-            #plt.savefig('/Users/dennisgoldfarb/Downloads/'+pep+"_"+str(pep_z)+".pdf")
-            #plt.close()
+                #fig, axes = plt.subplots(1, 3, figsize=(10, 6))
+                #axes = axes.ravel()
+                #fig_index = 0
+                #for method in ['linear', 'slinear', 'cubic']:
+                #    im = interp(grid_points, method=method).reshape(500, 500)
+                #    axes[fig_index].imshow(im)
+                #    axes[fig_index].set_title(method)
+                #    axes[fig_index].axis("off")
+                #    fig_index += 1
+                #fig.tight_layout()
+                #plt.savefig('/Users/dennisgoldfarb/Downloads/'+pep+"_"+str(pep_z)+".pdf")
+                #plt.close()
     return pep2z2fit       
 
 
@@ -239,7 +252,6 @@ def calibrate_lumos(pep2z2fit, all_scans):
 
 
 spline_mods = spline_models()            
-data_path = "/Users/dennisgoldfarb/Downloads/ProCal/v2/procal.msp"
 
 all_scans = [scan for scan in msp.read_msp_file(data_path) if scan.fileMetaData.model == "Orbitrap Fusion Lumos"]
 

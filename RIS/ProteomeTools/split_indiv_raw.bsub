@@ -1,0 +1,18 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/raw:latest)'
+#BSUB -J split_raw
+#BSUB -q general
+#BSUB -R "select[hname!='compute1-exec-160.ris.wustl.edu' && hname!='compute1-exec-106.ris.wustl.edu'] rusage[mem=1GB] span[hosts=1]"
+#BSUB -n 1
+#BSUB -W 300
+#BSUB -M 1GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/split_raw.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/split_raw.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+
+mkdir -p ${RESULTS_PATH}/split_raw
+
+python3.9 ${SRC_PATH}/python/split_indiv_raw.py ${SCRATCH_PATH}/ProteomeTools/${DATA_SET_NAME}/NCE_align.tsv /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ ${RESULTS_PATH}/annotated/${DATA_NAME}.msp ${RESULTS_PATH}/split_raw/

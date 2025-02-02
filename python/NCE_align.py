@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import csv
 import numpy as np
 from collections import defaultdict
-from similarity import spectralAngle
+from similarity import spectralAngle, scribe
 import msp
 import random as random
 import argparse
@@ -29,8 +29,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument("msp_path")
 parser.add_argument("raw_path")
 parser.add_argument("out_path")
-parser.add_argument("--lumos_model", default="/storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/QE_to_lumos_poly_quad.tsv", type=str)
-parser.add_argument("--spline_model", default="/storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/spline_fits_sqrt_quad.tsv", type=str)
+parser.add_argument("--lumos_model", default="/storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/QE_to_lumos_poly.tsv", type=str)  #quad
+parser.add_argument("--spline_model", default="/storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/spline_fits_sqrt.tsv", type=str) #quad
 args = parser.parse_args()
 
 class QE2lumos_models:
@@ -101,12 +101,27 @@ def SA(s1, s2):
     if len(intersection_set) <= 2: return 0 #np.nan
     if sum(s2.values()) <= 0: return 0 #np.nan
     
-    # observed
+     # observed
+    #v1_a = []
+    #for f in intersection_set:
+    #    if f in s1:
+    #        v1_a.append(s1[f])
+    #    else:
+    #        v1_a.append(0)
+    #v1_a = np.array(v1_a)      
     v1_a = np.array([s1[f] for f in intersection_set])
     
     # predicted
+    #v2_a = []
+    #for f in intersection_set:
+    #    if f in s2:
+    #        v2_a.append(s2[f])
+    #    else:
+    #        v2_a.append(0)
+    #v2_a = np.array(v2_a) 
     v2_a = np.array([s2[f] for f in intersection_set])
     
+    #return scribe(v1_a, v2_a, 0)
     return spectralAngle(v1_a, v2_a, 0)
 
 def scan2dict(scan):
@@ -114,6 +129,7 @@ def scan2dict(scan):
     for i, peak in enumerate(scan.spectrum):
         # check mask
         if scan.mask[i] == 0 or scan.mask[i] == 3:
+            #if scan.annotations[i].annotationName()[0] != "p": # not using precursor
             #if all([annot.error <= 10 for annot in scan.annotations[i].entries]):
                 frag2intensity[scan.annotations[i].annotationName()] = peak.getIntensity()
             
@@ -206,11 +222,13 @@ def calibrate_lumos(all_scans):
                 weighted_SAs, weight, scans, bestNCE = compute_SA_offsets(all_scans, pep, pep_z, NCE_target, NCEs)
                 if weighted_SAs is None: continue
                 
-                NCE_lumos_ref = QE2lumos_mods.eval(pep, pep_z, bestNCE)
-                
                 num_scans_NCE += scans
 
-                bestNCE_diff = NCE_lumos_ref - NCE_target
+                #NCE_lumos_ref = QE2lumos_mods.eval(pep, pep_z, bestNCE)
+                #bestNCE_diff = NCE_lumos_ref - NCE_target
+                
+                bestNCE_diff = bestNCE - NCE_target
+                
                 values.append(round(bestNCE_diff, 3))
                 weights.append(np.sqrt(weight))
                 
@@ -264,34 +282,4 @@ with open(os.path.join(args.out_path, os.path.basename(args.msp_path) + ".NCE"),
         else:
             outfile.write(filename + "\t" + rawFileMetaData.instrument_id + "\t" + cal_date + "\t" + str(rawFileMetaData.created_date) + "\t" + str(NCE) + "\t" + "NA" + "\n")
             
-    # write summary stats
-    #for diff, nce, npre, nscans in zip(diffs, valid_NCEs, num_precursors, num_scans):
-    #    outfile.write(str(nce) + " " + str(diff) + " " + str(npre) + " " + str(nscans) + "\n")
-    
-    # write precursor stats
-    #for NCE in NCE2pep2z2offset:
-    #    for pep in NCE2pep2z2offset[NCE]:
-    #        for z in NCE2pep2z2offset[NCE][pep]:
-    #            outfile.write("precursor " + str(NCE) + " " + pep + " " + str(z) + " " + str(oms.AASequence.fromString(pep).getMonoWeight(oms.Residue.ResidueType.Full, z)) + " " + str(NCE2pep2z2offset[NCE][pep][z]) + "\n") 
-    
-    
-    #outfile.write("num scans: " + str(len(all_scans)) + "\n")
-    #outfile.write("num diffs: " + str(len(diffs)) + "\n")
-    
-    
-    
-    #print("num scans:", str(len(all_scans)))
-    #print("num diffs: ", str(len(diffs)))
-    #if len(diffs) > 0:
-    #    outfile.write("mean: " + str(np.mean(diffs)) + "\n")
-
-
-#sys.exit()
-#correction_factor = np.mean(diffs) if len(diffs) > 0 else 0
-
-#with open(os.path.join(args.out_path, os.path.basename(args.msp_path) + ".NCE"), "w") as outfile:
-#    for scan in msp.read_msp_file(args.msp_path):
-#        scan.metaData.key2val["NCE_aligned"] = scan.metaData.NCE + correction_factor
-#        scan.updateMSPName()
-#        scan.writeScan(outfile)
 

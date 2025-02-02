@@ -11,7 +11,7 @@
 #BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/merge_quad.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/merge_quad.%J.err.txt
 
-#echo -e "date\tmz\tz\tcal\toffset\tratio" > /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/quad_25.tsv
-#cat /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/**/**/results/quad/*quad >> /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/quad_25.tsv
+echo -e "date\tmz\tz\tcal\toffset\tratio" > /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/quad_25.tsv
+cat /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/**/**/results/quad/*quad >> /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/quad_25.tsv
 
 python3.9 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/consolidate_quad.py /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/quad_25.tsv /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/

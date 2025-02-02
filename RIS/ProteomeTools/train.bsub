@@ -4,10 +4,10 @@
 #BSUB -a 'docker(dennisgoldfarb/pytorch_ris:lightning)'
 #BSUB -J train
 #BSUB -q general-interactive
-#BSUB -R 'gpuhost rusage[mem=40GB]'
+#BSUB -R "gpuhost rusage[mem=40GB] span[hosts=1]"
 #BSUB -gpu 'num=1:gmem=10G:gmodel=TeslaV100_SXM2_32GB'
 #BSUB -n 4
-#BSUB -W 200
+#BSUB -W 1440
 #BSUB -M 40G
 #BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/train.%J.out.txt
 #BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/train.%J.err.txt

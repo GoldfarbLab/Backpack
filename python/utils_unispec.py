@@ -343,7 +343,8 @@ class LoadObj:
                 outch[m] = out[1]
                 outce[m] = out[2]
         
-        out = [outseq, outch, outce] if self.embed else [outseq]
+       # out = [outseq, outch, outce] if self.embed else [outseq]
+        out = [outseq, outch] if self.embed else [outseq] #FIXME !!! go back to previous
         return out, info
     
     def apply_group_constraints(self, pred, index2new_indices, new_size):
@@ -727,13 +728,13 @@ class LoadObj:
                     if "Oxidation" not in mods:
                         a = False
                         
-            if "m" in ion:
-                [start,ext] = [
-                    int(j) for j in 
-                    ion[1:].split("^")[0].split('+')[0].split('-')[0].split(':')
-                ]
+            #if "m" in ion:
+            #    [start,ext] = [
+            #        int(j) for j in 
+            #        ion[1:].split("^")[0].split('+')[0].split('-')[0].split(':')
+            #    ]
                 # Do not write if the internal extends beyond length of peptide-2
-                if (start+ext)>=(len(seq)-2): a = False
+           #     if (start+ext)>=(len(seq)-2): a = False
             # The precursor ion must be the same charge
             #if ion[0] == 'p' and ion_charge != charge:
             #    a = False
@@ -774,7 +775,7 @@ class LoadObj:
                 a = False
             
             if a:
-                pep = createPeptide(seq, mods)
+                pep = createPeptide(seq, 0, mods)
                 ec = annot.getEmpiricalFormula(pep).getElementalComposition()
                 
                 for element in ec:

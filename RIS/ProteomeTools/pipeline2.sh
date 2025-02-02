@@ -36,5 +36,8 @@ source ${SCRATCH_PATH}/ProteomeTools/${DATA_SET}/${DATA_NAME}/scripts/config.sh
 #echo Submitted deisotope job for $DATA_NAME with ID: $jid5
 
 #jid6=$(get_jobid bsub -w "ended($jid5)" < $SCRIPT_PATH/NCE_align.bsub)
-#jid6=$(get_jobid bsub < $SCRIPT_PATH/NCE_align.bsub)
-#echo Submitted NCE alignment job for $DATA_NAME with ID: $jid6
+jid6=$(get_jobid bsub < $SCRIPT_PATH/NCE_align.bsub)
+echo Submitted NCE alignment job for $DATA_NAME with ID: $jid6
+
+#jid=$(get_jobid bsub < $SCRIPT_PATH/reisotope_compare.bsub)
+#echo Submitted reisotope job for $DATA_NAME with ID: $jid

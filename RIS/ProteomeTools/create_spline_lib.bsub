@@ -1,0 +1,20 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(dennisgoldfarb/raw:py3.10)'
+#BSUB -J spline_lib_json
+#BSUB -q general
+#BSUB -R "select[hname!='compute1-exec-160.ris.wustl.edu' && hname!='compute1-exec-106.ris.wustl.edu'] rusage[mem=120GB] span[hosts=1]"
+#BSUB -n 1
+#BSUB -W 300
+#BSUB -M 120GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/spline_lib_json.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/spline_lib_json.%J.err.txt
+
+mkdir -p /scratch1/fs1/d.goldfarb/Backpack/eval/pickle/
+
+#python3.10 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/create_spline_library_json.py /scratch1/fs1/d.goldfarb/Backpack/eval/pickle/clear-mountain-new.pkl
+#python3.10 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/create_spline_library_json.py /scratch1/fs1/d.goldfarb/Backpack/eval/pickle/eternal-glade-new-NL.pkl
+#python3.10 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/create_spline_library_json.py /scratch1/fs1/d.goldfarb/Backpack/eval/pickle/expert-pine-new-NL-noDecon.pkl
+#python3.10 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/create_spline_library_json.py /scratch1/fs1/d.goldfarb/Backpack/eval/pickle/empty_prosit.pkl
+python3.10 /storage1/fs1/d.goldfarb/Active/Projects/Backpack/python/create_spline_library_json.py /scratch1/fs1/d.goldfarb/Backpack/eval/pickle/byp_imm5_rawOffset_e2.pkl

@@ -238,7 +238,7 @@ class scan:
     def updateLOD(self):
         min_annotated = 1e9
         for i, peak in enumerate(self.spectrum):
-            if len(self.annotations[i].entries) > 0 and self.annotations[i].entries[0].toString() != "?": 
+            if len(self.annotations[i].entries) > 0 and self.annotations[i].entries[0].toString() != "?" and peak.getIntensity() > 0: 
                 min_annotated = min(peak.getIntensity(), min_annotated)
         self.metaData.LOD = min_annotated
         name_split = self.name.split("_")

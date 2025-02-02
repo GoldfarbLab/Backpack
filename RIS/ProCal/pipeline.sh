@@ -27,15 +27,13 @@ source ${SCRATCH_PATH}/ProteomeTools/${DATA_SET}/${DATA_NAME}/scripts/config.sh
 #jid3=$(get_jobid bsub < $SCRIPT_PATH/annotate.bsub)
 #echo Submitted annotate job for $DATA_NAME with ID: $jid3
 
-
 #jid4=$(get_jobid bsub -w "ended($jid3)" < $SCRIPT_PATH/filter.bsub)
 #jid4=$(get_jobid bsub < $SCRIPT_PATH/filter.bsub)
 #echo Submitted filter job for $DATA_NAME with ID: $jid4
 
-#jid=$(get_jobid bsub -w "ended($jid3)" < $SCRIPT_PATH/quad_fit.bsub)
+#jid=$(get_jobid bsub -w "ended($jid4)" < $SCRIPT_PATH/quad_fit.bsub)
 #jid=$(get_jobid bsub < $SCRIPT_PATH/quad_fit.bsub)
 #echo Submitted quad_fit job for $DATA_NAME with ID: $jid
-
 
 #jid5=$(get_jobid bsub -w "ended($jid4)" < $SCRIPT_PATH/deisotope.bsub)
 #jid5=$(get_jobid bsub < $SCRIPT_PATH/deisotope.bsub)

@@ -1,0 +1,21 @@
+#!/bin/bash
+#BSUB -g /d.goldfarb/compute
+#BSUB -G compute-d.goldfarb
+#BSUB -a 'docker(rocker/tidyverse:latest)'
+#BSUB -J frag_splines
+#BSUB -q general
+#BSUB -R "select[hname!='compute1-exec-160.ris.wustl.edu' && hname!='compute1-exec-106.ris.wustl.edu'] rusage[mem=4GB] span[hosts=1]"
+#BSUB -n 1
+#BSUB -W 300
+#BSUB -M 4GB
+#BSUB -o /scratch1/fs1/d.goldfarb/Backpack/logs/frag_splines.%J.out.txt
+#BSUB -e /scratch1/fs1/d.goldfarb/Backpack/logs/frag_splines.%J.err.txt
+
+source LSF_SCRIPT_PATH/config.sh
+
+
+# Make output directory
+mkdir -p ${RESULTS_PATH}/frag_splines/
+
+Rscript ${SRC_PATH}/R/procal_frag_splines.R /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ProCal/procal_traces.tsv /scratch1/fs1/d.goldfarb/Backpack/ProteomeTools/ProCal/spline_fits.tsv ${RESULTS_PATH}/frag_splines/
+
